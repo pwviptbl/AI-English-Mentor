@@ -26,11 +26,15 @@ services:
       - ./backend/.env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/ai_english_mentor
-      ALLOWED_ORIGINS: http://localhost:3000
-      JWT_SECRET_KEY: change-me-access
-      JWT_REFRESH_SECRET_KEY: change-me-refresh
-      DEFAULT_AI_PROVIDER: gemini
-      ENABLE_COPILOT: "false"
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-access}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY:-change-me-refresh}
+      DEFAULT_AI_PROVIDER: ${DEFAULT_AI_PROVIDER:-gemini}
+      ENABLE_COPILOT: "${ENABLE_COPILOT:-false}"
+      ENABLE_OLLAMA: "${ENABLE_OLLAMA:-false}"
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     volumes:
       - ./backend:/app
     ports:
@@ -44,7 +48,7 @@ services:
       context: ./frontend
     container_name: ai_mentor_frontend
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+      NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:8000/api/v1}
     volumes:
       - ./frontend:/app
       - /app/node_modules
