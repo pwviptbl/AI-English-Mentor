@@ -62,6 +62,21 @@ cd backend
 python -m app.cli.copilot_auth login
 ```
 
+## Session and analysis behavior
+
+- Frontend performs automatic token refresh (`/auth/refresh`) on `401` and retries the original request once.
+- Message analysis is available for both user and assistant messages.
+
+## Load test (P95)
+
+Run a basic concurrent load test for `/api/v1/chat/send`:
+
+```bash
+python ops/scripts/chat_p95_load.py --base-url http://localhost:8000/api/v1 --users 10 --requests-per-user 5 --target-p95-ms 3000
+```
+
+The script prints JSON summary with `p50_ms`, `p95_ms`, `p99_ms`, throughput, failures, and exits non-zero if the P95 target is not met.
+
 ## API summary
 
 - `POST /api/v1/auth/register`
