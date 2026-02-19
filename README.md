@@ -31,9 +31,12 @@ Para rodar em servidores (especialmente com < 4GB de RAM), use o script de confi
 
 4.  **Configure as variáveis de ambiente**:
     ```bash
-    cp .env.deploy.example .env
+    cd backend
+    cp .env.example .env
     nano .env
-    # Edite JWT_SECRET_KEY, GEMINI_API_KEY, e API_BASE_URL (seu IP)
+    # Edite JWT_SECRET_KEY, GEMINI_API_KEY, e API_BASE_URL (coloque seu IP, ex: http://137.184.20.185:8000/api/v1)
+    # Volte para a raiz depois de salvar:
+    cd ..
     ```
 
 5.  **Faça o deploy**:
