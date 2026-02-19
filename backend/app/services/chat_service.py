@@ -3,9 +3,12 @@ import time
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging import get_logger
 from app.db.models import Message, Session, User
 from app.schemas.chat import ChatSendRequest
 from app.services.llm_router import LLMRouter
+
+logger = get_logger(__name__)
 
 
 class ChatService:
@@ -82,6 +85,20 @@ class ChatService:
         await self.db.commit()
 
         latency_ms = int((time.perf_counter() - start) * 1000)
+        logger.info(
+            "chat.completed",
+            extra={
+                "user_id": user.id,
+                "session_id": session.id,
+                "user_message_id": user_message.id,
+                "assistant_message_id": assistant_message.id,
+                "correction_provider": correction_provider,
+                "correction_model": correction_model,
+                "reply_provider": reply_provider,
+                "reply_model": reply_model,
+                "latency_ms": latency_ms,
+            },
+        )
 
         return {
             "user_message_id": user_message.id,

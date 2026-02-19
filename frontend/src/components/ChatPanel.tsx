@@ -155,14 +155,12 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
                   </div>
                   <p className="mt-2 text-sm leading-relaxed">{message.content_final}</p>
                   <div className="mt-3 flex gap-2">
-                    {message.role === "assistant" ? (
-                      <button
-                        className="rounded-md bg-accent px-2 py-1 text-xs text-white"
-                        onClick={() => openAnalysis(message.id)}
-                      >
-                        Analyze
-                      </button>
-                    ) : null}
+                    <button
+                      className="rounded-md bg-accent px-2 py-1 text-xs text-white"
+                      onClick={() => openAnalysis(message.id)}
+                    >
+                      Analyze
+                    </button>
                     <button
                       className="rounded-md bg-emerald-900/10 px-2 py-1 text-xs"
                       onClick={() => speak(message.content_final)}

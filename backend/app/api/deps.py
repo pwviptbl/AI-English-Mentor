@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +33,7 @@ def get_llm_router() -> LLMRouter:
 
 
 async def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
@@ -55,4 +56,5 @@ async def get_current_user(
     user = (await db.execute(stmt)).scalar_one_or_none()
     if not user:
         raise credentials_exception
+    request.state.user_id = user.id
     return user

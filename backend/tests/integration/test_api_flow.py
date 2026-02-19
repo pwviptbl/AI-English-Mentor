@@ -50,6 +50,15 @@ def test_end_to_end_chat_analysis_and_srs(client) -> None:
     analysis_payload = analysis_response.json()
     assert analysis_payload["tokens"]
 
+    user_message_id = chat_payload["user_message_id"]
+    user_analysis_response = client.post(
+        f"/api/v1/messages/{user_message_id}/analysis",
+        headers=headers,
+    )
+    assert user_analysis_response.status_code == 200
+    user_analysis_payload = user_analysis_response.json()
+    assert user_analysis_payload["tokens"]
+
     add_flashcard_response = client.post(
         "/api/v1/flashcards",
         headers=headers,

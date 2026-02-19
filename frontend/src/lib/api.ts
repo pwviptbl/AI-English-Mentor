@@ -7,6 +7,7 @@ import type {
   Session,
   User,
 } from "./types";
+import { useMentorStore } from "@/store/useMentorStore";
 
 function getApiBase(): string {
   const configured = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -50,6 +51,44 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function attemptTokenRefresh(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+
+  const state = useMentorStore.getState();
+  const currentRefreshToken = state.refreshToken;
+  if (!currentRefreshToken) return null;
+
+  const apiBases = buildApiBaseCandidates();
+  let lastError: unknown = null;
+
+  for (const apiBase of apiBases) {
+    try {
+      const response = await fetch(`${apiBase}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: currentRefreshToken }),
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        lastError = new Error(`refresh failed: ${response.status}`);
+        continue;
+      }
+      const payload = await response.json() as { access_token: string; refresh_token: string };
+      if (!payload.access_token || !payload.refresh_token) {
+        lastError = new Error("refresh response missing tokens");
+        continue;
+      }
+      useMentorStore.getState().setAuth(payload.access_token, payload.refresh_token);
+      return payload.access_token;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  console.warn("Token refresh failed", lastError);
+  return null;
+}
+
 async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const headers = new Headers(options.headers || {});
   headers.set("Content-Type", "application/json");
@@ -87,6 +126,23 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     throw new Error(
       `Nao foi possivel conectar ao backend (${lastTriedUrl || `${apiBases[0]}${path}`})${reason}. Verifique se a API esta no ar e o NEXT_PUBLIC_API_BASE_URL.`,
     );
+  }
+
+  if (response.status === 401 && token) {
+    const refreshedAccessToken = await attemptTokenRefresh();
+    if (!refreshedAccessToken) {
+      useMentorStore.getState().logout();
+      throw new Error("Sessão expirada. Faça login novamente.");
+    }
+
+    const retriedHeaders = new Headers(options.headers || {});
+    retriedHeaders.set("Content-Type", "application/json");
+    retriedHeaders.set("Authorization", `Bearer ${refreshedAccessToken}`);
+    response = await fetch(lastTriedUrl || `${apiBases[0]}${path}`, {
+      ...options,
+      headers: retriedHeaders,
+      cache: "no-store",
+    });
   }
 
   if (!response.ok) {
