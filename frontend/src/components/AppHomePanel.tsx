@@ -28,8 +28,8 @@ export function AppHomePanel({
           onClick={onOpenConversations}
           type="button"
         >
-          <p className="text-lg font-semibold">Conversas</p>
-          <p className="mt-1 text-sm text-ink/60">Veja suas sessões e retome qualquer conversa.</p>
+          <p className="text-lg font-bold text-ink">Conversas</p>
+          <p className="mt-1 text-sm font-medium text-ink/80">Veja suas sessões e retome qualquer conversa.</p>
           {hasActiveConversation ? (
             <p className="mt-3 inline-block rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800">
               Conversa ativa disponível
@@ -42,8 +42,8 @@ export function AppHomePanel({
           onClick={onOpenNewConversation}
           type="button"
         >
-          <p className="text-lg font-semibold">Nova Conversa</p>
-          <p className="mt-1 text-sm text-ink/60">
+          <p className="text-lg font-bold text-ink">Nova Conversa</p>
+          <p className="mt-1 text-sm font-medium text-ink/80">
             Escolha cenários sugeridos ou crie seu próprio tópico de treino.
           </p>
         </button>
@@ -53,8 +53,8 @@ export function AppHomePanel({
           onClick={onOpenReview}
           type="button"
         >
-          <p className="text-lg font-semibold">Revisão</p>
-          <p className="mt-1 text-sm text-ink/60">Revise palavras pendentes com o sistema SRS.</p>
+          <p className="text-lg font-bold text-ink">Revisão</p>
+          <p className="mt-1 text-sm font-medium text-ink/80">Revise palavras pendentes com o sistema SRS.</p>
         </button>
       </div>
     </section>

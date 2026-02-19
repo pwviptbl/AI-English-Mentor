@@ -13,7 +13,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ai_english_mentor"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d ai_english_mentor" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -29,12 +29,10 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-access}
       JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY:-change-me-refresh}
-      DEFAULT_AI_PROVIDER: ${DEFAULT_AI_PROVIDER:-gemini}
-      ENABLE_COPILOT: "${ENABLE_COPILOT:-false}"
       ENABLE_OLLAMA: "${ENABLE_OLLAMA:-false}"
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     volumes:
       - ./backend:/app
     ports:

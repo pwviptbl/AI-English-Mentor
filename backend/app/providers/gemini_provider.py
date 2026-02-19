@@ -22,7 +22,8 @@ class GeminiProvider(BaseLLMProvider):
     name = "gemini"
 
     def is_available(self) -> bool:
-        return True
+        # Disponível apenas se a chave da API estiver configurada
+        return bool(settings.gemini_api_key)
 
     async def _generate(self, prompt: str, model: str, timeout_seconds: int) -> str:
         if not settings.gemini_api_key:

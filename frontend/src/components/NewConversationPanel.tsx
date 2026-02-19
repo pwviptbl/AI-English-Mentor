@@ -204,7 +204,7 @@ export function NewConversationPanel({ token, onSessionCreated }: Props) {
             disabled={loading}
           >
             <div className="flex items-center justify-between mb-1">
-              <p className="text-base font-semibold">{scenario.topic}</p>
+              <p className="text-base font-bold text-ink">{scenario.topic}</p>
               <span
                 className="rounded-full px-2 py-0.5 text-[10px] font-bold"
                 style={{
@@ -216,7 +216,7 @@ export function NewConversationPanel({ token, onSessionCreated }: Props) {
                 {scenario.cefr_level}
               </span>
             </div>
-            <p className="mt-0.5 text-sm text-ink/60">{scenario.subtitle}</p>
+            <p className="mt-0.5 text-sm font-medium text-ink/80">{scenario.subtitle}</p>
           </button>
         ))}
       </div>

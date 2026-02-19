@@ -17,6 +17,9 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "AI English Mentor",
   description: "Conversational English training with correction and SRS",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

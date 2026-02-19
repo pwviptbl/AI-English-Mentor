@@ -234,6 +234,11 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
                       >
                         🔬
                       </button>
+                      {m.provider && (
+                        <span className="ml-auto text-[10px] opacity-40 uppercase tracking-wide">
+                          {m.provider} {m.model ? `• ${m.model}` : ""}
+                        </span>
+                      )}
                     </>
                   )}
                 </div>

@@ -20,7 +20,10 @@ class CopilotProvider(BaseLLMProvider):
         self.token_manager = token_manager or CopilotTokenManager()
 
     def is_available(self) -> bool:
-        return settings.enable_copilot and self.token_manager.has_oauth_token()
+        if not settings.enable_copilot:
+            return False
+        # Disponível se tiver logado via OAuth OU se tiver um token interno válido em cache
+        return self.token_manager.has_oauth_token() or self.token_manager._load_cached_internal_token() is not None
 
     async def _chat_completion(self, messages: list[dict], model: str, timeout_seconds: int) -> str:
         if not settings.enable_copilot:
