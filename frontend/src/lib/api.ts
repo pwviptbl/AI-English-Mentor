@@ -201,6 +201,32 @@ export async function createSession(
   }, token);
 }
 
+export async function deleteSession(token: string, sessionId: string): Promise<void> {
+  const apiBases = buildApiBaseCandidates();
+  let response: Response | null = null;
+  let lastError: unknown = null;
+
+  for (const apiBase of apiBases) {
+    try {
+      response = await fetch(`${apiBase}/sessions/${sessionId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      break;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (!response) {
+    throw new Error("Não foi possível conectar ao backend para excluir a sessão.");
+  }
+  if (!response.ok && response.status !== 204) {
+    throw new Error(`Falha ao excluir sessão: ${response.status}`);
+  }
+}
+
 // ─── Mensagens ────────────────────────────────────────────────────────────────
 
 export async function listMessages(token: string, sessionId: string): Promise<Message[]> {

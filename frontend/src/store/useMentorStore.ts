@@ -19,6 +19,7 @@ type MentorState = {
   setActiveSessionId: (sessionId: string | null) => void;
   setMessages: (sessionId: string, messages: Message[]) => void;
   appendMessages: (sessionId: string, messages: Message[]) => void;
+  removeSession: (sessionId: string) => void;
 };
 
 export const useMentorStore = create<MentorState>()(
@@ -55,6 +56,15 @@ export const useMentorStore = create<MentorState>()(
               ...state.messagesBySession,
               [sessionId]: [...current, ...messages],
             },
+          };
+        }),
+      removeSession: (sessionId) =>
+        set((state) => {
+          const { [sessionId]: _, ...rest } = state.messagesBySession;
+          return {
+            sessions: state.sessions.filter((s) => s.id !== sessionId),
+            activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
+            messagesBySession: rest,
           };
         }),
     }),

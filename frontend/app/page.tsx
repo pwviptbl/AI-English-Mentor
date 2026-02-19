@@ -10,7 +10,7 @@ import { NewConversationPanel } from "@/components/NewConversationPanel";
 import { ProgressDashboard } from "@/components/ProgressDashboard";
 import { ReviewPanel } from "@/components/ReviewPanel";
 import { ShadowingPanel } from "@/components/ShadowingPanel";
-import { listMessages, listSessions, me } from "@/lib/api";
+import { deleteSession, listMessages, listSessions, me } from "@/lib/api";
 import { useMentorStore } from "@/store/useMentorStore";
 
 type AppScreen = "home" | "conversations" | "new-conversation" | "review" | "chat" | "progress" | "shadowing";
@@ -27,11 +27,13 @@ export default function HomePage() {
     setSessions,
     setActiveSessionId,
     setMessages,
+    removeSession,
   } = useMentorStore();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [screen, setScreen] = useState<AppScreen>("home");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function reloadProfileAndSessions() {
     if (!accessToken) return;
@@ -75,6 +77,12 @@ export default function HomePage() {
     await openSessionChat(sessionId);
   }
 
+  async function handleDeleteSession(sessionId: string) {
+    if (!accessToken) return;
+    await deleteSession(accessToken, sessionId);
+    removeSession(sessionId);
+  }
+
   useEffect(() => {
     if (accessToken) {
       reloadProfileAndSessions();
@@ -105,66 +113,107 @@ export default function HomePage() {
   return (
     <main className="min-h-screen p-4 sm:p-8">
       <div className="mx-auto max-w-7xl space-y-4">
-        <header className="rounded-2xl border border-emerald-900/20 bg-panel p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold">AI English Mentor</h1>
-              <p className="text-sm text-ink/65">
-                {currentUser.full_name} ({currentUser.email}) | provider: {currentUser.preferred_ai_provider}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
+        {/* ── Top Bar (fixo, compacto) ── */}
+        <header className="rounded-2xl border border-emerald-900/20 bg-panel shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between p-3 sm:p-4">
+            <h1 className="text-lg font-bold sm:text-2xl">AI English Mentor</h1>
+
+            {/* Nav desktop (hidden em mobile) */}
+            <nav className="hidden items-center gap-1.5 md:flex">
+              {([
+                ["home", "Início"],
+                ["conversations", "Conversas"],
+                ["new-conversation", "Nova conversa"],
+                ["review", "Revisão"],
+                ["progress", "📊 Progresso"],
+                ["shadowing", "🔁 Shadowing"],
+              ] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  className={`rounded-xl px-3 py-2 text-sm font-medium transition ${screen === key ? "bg-accent text-white" : "bg-emerald-900/10 text-ink hover:bg-emerald-900/15"
+                    }`}
+                  type="button"
+                  onClick={() => setScreen(key as AppScreen)}
+                >
+                  {label}
+                </button>
+              ))}
               <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "home" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                  }`}
+                className="rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white"
                 type="button"
-                onClick={() => setScreen("home")}
+                onClick={logout}
               >
-                Início
-              </button>
-              <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "conversations" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                  }`}
-                type="button"
-                onClick={() => setScreen("conversations")}
-              >
-                Conversas
-              </button>
-              <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "new-conversation" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                  }`}
-                type="button"
-                onClick={() => setScreen("new-conversation")}
-              >
-                Nova conversa
-              </button>
-              <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "review" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                  }`}
-                type="button"
-                onClick={() => setScreen("review")}
-              >
-                Revisão
-              </button>
-              <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "progress" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                  }`}
-                type="button"
-                onClick={() => setScreen("progress")}
-              >
-                📊 Progresso
-              </button>
-              <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "shadowing" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                  }`}
-                type="button"
-                onClick={() => setScreen("shadowing")}
-              >
-                🔁 Shadowing
-              </button>
-              <button className="rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white" onClick={logout}>
                 Logout
               </button>
+            </nav>
+
+            {/* Botão hambúrguer (mobile only) */}
+            <button
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-900/10 transition hover:bg-emerald-900/20 md:hidden"
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Menu"
+            >
+              {menuOpen ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          {/* Painel slide-down (mobile) */}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out md:hidden ${menuOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+              }`}
+          >
+            <div className="border-t border-emerald-900/10 p-4">
+              {/* Info do usuário */}
+              <div className="mb-4 rounded-xl bg-emerald-50 p-3">
+                <p className="text-sm font-semibold text-ink">{currentUser.full_name}</p>
+                <p className="text-xs text-ink/50">{currentUser.email}</p>
+              </div>
+
+              {/* Links de navegação */}
+              <nav className="flex flex-col gap-1.5">
+                {([
+                  ["home", "🏠", "Início"],
+                  ["conversations", "💬", "Conversas"],
+                  ["new-conversation", "✨", "Nova conversa"],
+                  ["review", "📝", "Revisão"],
+                  ["progress", "📊", "Progresso"],
+                  ["shadowing", "🔁", "Shadowing"],
+                ] as const).map(([key, icon, label]) => (
+                  <button
+                    key={key}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${screen === key
+                      ? "bg-accent text-white"
+                      : "text-ink hover:bg-emerald-900/8"
+                      }`}
+                    type="button"
+                    onClick={() => {
+                      setScreen(key as AppScreen);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <span className="text-base">{icon}</span>
+                    {label}
+                  </button>
+                ))}
+                <div className="my-1.5 border-t border-emerald-900/10" />
+                <button
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition"
+                  type="button"
+                  onClick={logout}
+                >
+                  <span className="text-base">🚪</span>
+                  Sair
+                </button>
+              </nav>
             </div>
           </div>
         </header>
@@ -186,6 +235,7 @@ export default function HomePage() {
             sessions={sessions}
             activeSessionId={activeSessionId}
             onSelectSession={openSessionChat}
+            onDeleteSession={handleDeleteSession}
             onGoToActiveConversation={() => setScreen("chat")}
             onOpenNewConversation={() => setScreen("new-conversation")}
           />
