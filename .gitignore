@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.coverage
+
+# Backend env and tokens
+backend/.env
+backend/.github_oauth_token.json
+backend/.copilot_token_cache.json
+backend/test_ai_mentor.db
+
+# Virtual environments
+.venv/
+venv/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
