@@ -6,7 +6,7 @@ Monorepo for a correction-first English conversation mentor.
 
 - Backend: FastAPI + SQLAlchemy Async + PostgreSQL
 - Frontend: Next.js + Tailwind + Zustand
-- AI Router: Gemini (default) with optional GitHub Copilot provider
+- AI Router: Gemini (default), Ollama (local/free), or GitHub Copilot
 
 ## Project layout
 
@@ -22,30 +22,27 @@ ops/
   scripts/
 ```
 
-## Local run (native-first)
-
-### 1) Backend
+### 3) Docker (Recomendado)
 
 ```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev]
-cp .env.example .env
-uvicorn app.main:app --reload --port 8000
+docker-compose up --build
 ```
+Isso sobe o banco de dados (PostgreSQL), o backend e o frontend sincronizados.
 
-### 2) Frontend
+Frontend: `http://localhost:3000`  
+Backend: `http://localhost:8000`
 
-```bash
-cd frontend
-npm install
-cp .env.local.example .env.local
-npm run dev
-```
+## Ollama (LLM Local Gratuito)
 
-Frontend default: `http://localhost:3000`  
-Backend default: `http://localhost:8000`
+Para usar modelos locais sem gastar com API:
+
+1. Instale o [Ollama](https://ollama.ai).
+2. Baixe o modelo desejado (ex: `ollama pull llama3.2`).
+3. Configure o `backend/.env`:
+   ```env
+   ENABLE_OLLAMA=true
+   OLLAMA_MODEL=llama3.2
+   ```
 
 ## Copilot optional provider
 
@@ -62,10 +59,14 @@ cd backend
 python -m app.cli.copilot_auth login
 ```
 
-## Session and analysis behavior
+## Recursos Principais
 
-- Frontend performs automatic token refresh (`/auth/refresh`) on `401` and retries the original request once.
-- Message analysis is available for both user and assistant messages.
+- **Correção Inteligente**: Analisa erros de gramática e preposição com categorias coloridas.
+- **Modo Shadowing**: Pratique pronúncia ouvindo o mentor (TTS) e repetindo (STT).
+- **SSE Streaming**: Respostas em tempo real para uma conversa mais fluida.
+- **FSRS v4**: Algoritmo de repetição espaçada de última geração para flashcards.
+- **Dashboard de Progresso**: Acompanhe sua streak, taxa de acerto e palavras aprendidas.
+- **Apoio CEFR**: Sessões e cenários nivelados de A1 a C2.
 
 ## Load test (P95)
 
@@ -89,10 +90,13 @@ The script prints JSON summary with `p50_ms`, `p95_ms`, `p99_ms`, throughput, fa
 - `DELETE /api/v1/sessions/{session_id}`
 - `GET /api/v1/sessions/{session_id}/messages`
 - `POST /api/v1/chat/send`
-- `POST /api/v1/messages/{message_id}/analysis`
+- `POST /api/v1/chat/stream` (SSE)
+- `POST /api/v1/messages/{message_id}/analysis` (com cache SHA-256)
 - `POST /api/v1/flashcards`
-- `GET /api/v1/flashcards/due`
+- `GET /api/v1/flashcards/due` (FSRS v4 scheduler)
 - `POST /api/v1/reviews`
+- `GET /api/v1/reviews/history`
+- `GET /api/v1/stats/overview`
 - `GET /api/v1/reviews/stats`
 - `GET /api/v1/providers/status`
 - `PATCH /api/v1/users/preferences/provider`

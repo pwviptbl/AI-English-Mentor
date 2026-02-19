@@ -86,8 +86,10 @@ class CopilotProvider(BaseLLMProvider):
             {
                 "role": "system",
                 "content": (
-                    "You are a strict English correction engine. Return only JSON with "
-                    "corrected_text, changed, notes (notes in Portuguese)."
+                    "You are a strict English correction engine. Return only JSON with keys: "
+                    "corrected_text (string), changed (boolean), notes (string in Portuguese), "
+                    "correction_categories (array of short Portuguese error category names, e.g. "
+                    "[\"tempo verbal\", \"preposição\", \"vocabulário\", \"gramática\"])."
                 ),
             },
             {"role": "user", "content": raw_text},
@@ -97,7 +99,15 @@ class CopilotProvider(BaseLLMProvider):
         corrected = str(parsed.get("corrected_text", "")).strip() or raw_text.strip()
         changed = bool(parsed.get("changed", corrected != raw_text.strip()))
         notes = str(parsed.get("notes", ""))
-        return CorrectionResult(corrected_text=corrected, changed=changed, notes=notes), model
+        categories_raw = parsed.get("correction_categories") or []
+        categories = [str(c) for c in categories_raw if c]
+        return CorrectionResult(
+            corrected_text=corrected,
+            changed=changed,
+            notes=notes,
+            correction_categories=categories,
+        ), model
+
 
     async def generate_reply(
         self, corrected_text: str, history: list[dict], context: dict

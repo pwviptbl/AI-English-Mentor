@@ -10,6 +10,7 @@ export type Session = {
   id: string;
   topic: string;
   persona_prompt: string | null;
+  cefr_level: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -20,20 +21,28 @@ export type Message = {
   content_raw: string | null;
   content_corrected: string | null;
   content_final: string;
+  meta_json?: {
+    changed?: boolean;
+    notes?: string;
+    categories?: string[];
+  } | null;
   provider: string | null;
   model: string | null;
   created_at: string;
 };
 
+export type CorrectionMeta = {
+  changed: boolean;
+  notes: string;
+  categories: string[];
+  provider: string;
+  model: string;
+};
+
 export type ChatResponse = {
   user_message_id: string;
   corrected_text: string;
-  correction_meta: {
-    changed: boolean;
-    notes: string;
-    provider: string;
-    model: string;
-  };
+  correction_meta: CorrectionMeta;
   assistant_message_id: string;
   assistant_reply: string;
   provider_used: string;
@@ -68,10 +77,26 @@ export type Flashcard = {
   repetitions: number;
   ease_factor: number;
   lapses: number;
+  stability: number;
+  difficulty: number;
 };
 
 export type ReviewStats = {
   total_cards: number;
   due_now: number;
   reviews_today: number;
+};
+
+export type DailyReviewStat = {
+  date: string;
+  count: number;
+  accuracy: number;
+};
+
+export type ProgressOverview = {
+  streak_days: number;
+  total_learned: number;
+  accuracy_rate: number;
+  reviews_today: number;
+  daily_history: DailyReviewStat[];
 };

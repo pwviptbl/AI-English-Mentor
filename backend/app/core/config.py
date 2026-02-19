@@ -30,6 +30,9 @@ class Settings(BaseSettings):
 
     default_ai_provider: str = "gemini"
     enable_copilot: bool = False
+    enable_ollama: bool = False
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.2"
 
     gemini_api_key: str | None = None
     gemini_model_correction: str = "gemini-2.0-flash"

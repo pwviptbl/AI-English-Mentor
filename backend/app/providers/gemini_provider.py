@@ -1,4 +1,5 @@
 import json
+import re
 
 import httpx
 
@@ -67,8 +68,10 @@ class GeminiProvider(BaseLLMProvider):
         prompt = (
             "You are a strict English correction engine. The input can be Portuguese, English, or mixed. "
             "Rewrite the user sentence in natural English while preserving intent and tone. "
-            "Return ONLY valid JSON object with keys: corrected_text (string), changed (boolean), notes (string). "
-            "Keep notes concise in Portuguese.\n"
+            "Return ONLY valid JSON with keys: corrected_text (string), changed (boolean), notes (string), "
+            "correction_categories (array of strings — error category names in Portuguese, e.g. "
+            '["tempo verbal", "pronominal", "preposição", "vocabulário", "ortografia", "gramática"]).'
+            "notes must be a concise explanation in Portuguese of each error found.\n"
             f"Input: {raw_text}"
         )
         text = await self._generate(prompt, model, settings.correction_timeout_seconds)
@@ -77,7 +80,14 @@ class GeminiProvider(BaseLLMProvider):
         corrected_text = str(parsed.get("corrected_text", "")).strip() or raw_text.strip()
         changed = bool(parsed.get("changed", corrected_text != raw_text.strip()))
         notes = str(parsed.get("notes", ""))
-        return CorrectionResult(corrected_text=corrected_text, changed=changed, notes=notes), model
+        categories_raw = parsed.get("correction_categories") or []
+        categories = [str(c) for c in categories_raw if c]
+        return CorrectionResult(
+            corrected_text=corrected_text,
+            changed=changed,
+            notes=notes,
+            correction_categories=categories,
+        ), model
 
     async def _translate_sentence_pt(self, sentence_en: str, model: str) -> str:
         prompt = (
@@ -121,6 +131,61 @@ class GeminiProvider(BaseLLMProvider):
         text = await self._generate(prompt, model, settings.chat_timeout_seconds)
         return ChatResult(reply=text.strip()), model
 
+    async def stream_reply(
+        self, corrected_text: str, history: list[dict], context: dict
+    ):
+        """Streaming da resposta do assistente via Gemini streamGenerateContent."""
+        from collections.abc import AsyncGenerator  # import local para evitar ciclo
+
+        if not settings.gemini_api_key:
+            raise ProviderUnavailableError("GEMINI_API_KEY is not set")
+
+        model = settings.gemini_model_chat
+        history_lines = [f"{m.get('role', 'user')}: {m.get('content', '')}" for m in history[-12:]]
+        persona = context.get("persona_prompt") or (
+            "You are an English conversation mentor. Respond only in English, naturally, and briefly."
+        )
+        learner_name = str(context.get("learner_name") or "Learner").strip()
+        prompt = (
+            f"System persona: {persona}\nLearner name: {learner_name}\n"
+            "Conversation history:\n" + "\n".join(history_lines) + "\n"
+            f"Learner corrected input: {corrected_text}\n"
+            "Reply as a conversation partner in English. Add one short follow-up question."
+        )
+
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
+            f"?key={settings.gemini_api_key}&alt=sse"
+        )
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.2},
+        }
+
+        import httpx as _httpx
+        try:
+            async with _httpx.AsyncClient(timeout=settings.chat_timeout_seconds) as client:
+                async with client.stream("POST", url, json=payload) as response:
+                    async for line in response.aiter_lines():
+                        if not line.startswith("data:"):
+                            continue
+                        raw = line[5:].strip()
+                        if not raw or raw == "[DONE]":
+                            continue
+                        try:
+                            data = json.loads(raw)
+                            candidates = data.get("candidates") or []
+                            if candidates:
+                                parts = candidates[0].get("content", {}).get("parts", [])
+                                for part in parts:
+                                    token = part.get("text", "")
+                                    if token:
+                                        yield token
+                        except json.JSONDecodeError:
+                            continue
+        except _httpx.RequestError as exc:
+            raise ProviderRequestError(f"Gemini stream error: {exc}") from exc
+
     async def analyze_sentence(self, sentence_en: str, context: dict) -> tuple[SentenceAnalysis, str]:
         model = settings.gemini_model_analysis
         prompt = (
@@ -128,6 +193,11 @@ class GeminiProvider(BaseLLMProvider):
             "original_en (string), translation_pt (string), tokens (array). "
             "Each token object must include: token, lemma, pos, translation, definition. "
             "Use Portuguese in translation and definition.\n"
+            "Example output:\n"
+            '{ "original_en": "Hello world", "translation_pt": "Olá mundo", "tokens": ['
+            '{ "token": "Hello", "lemma": "hello", "pos": "interjection", "translation": "olá", "definition": "saudação" },'
+            '{ "token": "world", "lemma": "world", "pos": "noun", "translation": "mundo", "definition": "planeta Terra" }'
+            "] }\n"
             f"Sentence: {sentence_en}"
         )
 

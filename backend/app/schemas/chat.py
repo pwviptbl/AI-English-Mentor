@@ -7,10 +7,19 @@ class ChatSendRequest(BaseModel):
     provider_override: str | None = None
 
 
+class CorrectionMeta(BaseModel):
+    changed: bool
+    notes: str
+    # categorias estruturadas de erro (ex: ["tempo verbal", "preposição"])
+    categories: list[str] = []
+    provider: str
+    model: str
+
+
 class ChatSendResponse(BaseModel):
     user_message_id: str
     corrected_text: str
-    correction_meta: dict
+    correction_meta: CorrectionMeta
     assistant_message_id: str
     assistant_reply: str
     provider_used: str

@@ -1,8 +1,11 @@
+from collections.abc import AsyncGenerator
+
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.providers.base import BaseLLMProvider
 from app.providers.copilot_provider import CopilotProvider
 from app.providers.gemini_provider import GeminiProvider
+from app.providers.ollama_provider import OllamaProvider
 from app.services.errors import ProviderError, ProviderUnavailableError
 from app.services.llm_types import ChatResult, CorrectionResult, SentenceAnalysis
 
@@ -11,10 +14,15 @@ logger = get_logger(__name__)
 
 class LLMRouter:
     def __init__(self, providers: dict[str, BaseLLMProvider] | None = None) -> None:
-        self.providers: dict[str, BaseLLMProvider] = providers or {
-            "gemini": GeminiProvider(),
-            "copilot": CopilotProvider(),
-        }
+        if providers is not None:
+            self.providers = providers
+        else:
+            self.providers: dict[str, BaseLLMProvider] = {
+                "gemini": GeminiProvider(),
+                "copilot": CopilotProvider(),
+            }
+            if settings.enable_ollama:
+                self.providers["ollama"] = OllamaProvider()
 
     def available_provider_names(self) -> list[str]:
         names = []
@@ -133,3 +141,39 @@ class LLMRouter:
             "analyze_sentence", order, sentence_en, context
         )
         return result, provider_name, model
+
+    async def stream_reply(
+        self,
+        corrected_text: str,
+        history: list[dict],
+        context: dict,
+        provider_override: str | None,
+        user_preference: str | None,
+    ) -> AsyncGenerator[str, None]:
+        """Gera chunks da resposta via streaming. Usa o primeiro provider disponível que suporta stream."""
+        order = self._provider_order(provider_override, user_preference)
+        for provider_name in order:
+            provider = self.providers[provider_name]
+            if not provider.is_available() and provider_name != "gemini":
+                continue
+            stream_method = getattr(provider, "stream_reply", None)
+            if stream_method is None:
+                # fallback: gera resposta completa e envia em um único chunk
+                try:
+                    result, _, _ = await self._execute_with_fallback(
+                        "generate_reply", [provider_name], corrected_text, history, context
+                    )
+                    yield result.reply
+                    return
+                except ProviderError:
+                    continue
+
+            try:
+                async for chunk in stream_method(corrected_text, history, context):
+                    yield chunk
+                return
+            except Exception as exc:
+                logger.warning("stream_reply falhou no provider %s: %s", provider_name, exc)
+                continue
+
+        raise ProviderError("all providers failed for stream_reply")

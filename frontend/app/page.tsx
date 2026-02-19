@@ -7,11 +7,13 @@ import { AppHomePanel } from "@/components/AppHomePanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ConversationsPanel } from "@/components/ConversationsPanel";
 import { NewConversationPanel } from "@/components/NewConversationPanel";
+import { ProgressDashboard } from "@/components/ProgressDashboard";
 import { ReviewPanel } from "@/components/ReviewPanel";
+import { ShadowingPanel } from "@/components/ShadowingPanel";
 import { listMessages, listSessions, me } from "@/lib/api";
 import { useMentorStore } from "@/store/useMentorStore";
 
-type AppScreen = "home" | "conversations" | "new-conversation" | "review" | "chat";
+type AppScreen = "home" | "conversations" | "new-conversation" | "review" | "chat" | "progress" | "shadowing";
 
 export default function HomePage() {
   const {
@@ -113,40 +115,52 @@ export default function HomePage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${
-                  screen === "home" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                }`}
+                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "home" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
+                  }`}
                 type="button"
                 onClick={() => setScreen("home")}
               >
                 Início
               </button>
               <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${
-                  screen === "conversations" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                }`}
+                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "conversations" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
+                  }`}
                 type="button"
                 onClick={() => setScreen("conversations")}
               >
                 Conversas
               </button>
               <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${
-                  screen === "new-conversation" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                }`}
+                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "new-conversation" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
+                  }`}
                 type="button"
                 onClick={() => setScreen("new-conversation")}
               >
                 Nova conversa
               </button>
               <button
-                className={`rounded-xl px-3 py-2 text-sm font-medium ${
-                  screen === "review" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
-                }`}
+                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "review" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
+                  }`}
                 type="button"
                 onClick={() => setScreen("review")}
               >
                 Revisão
+              </button>
+              <button
+                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "progress" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
+                  }`}
+                type="button"
+                onClick={() => setScreen("progress")}
+              >
+                📊 Progresso
+              </button>
+              <button
+                className={`rounded-xl px-3 py-2 text-sm font-medium ${screen === "shadowing" ? "bg-accent text-white" : "bg-emerald-900/10 text-ink"
+                  }`}
+                type="button"
+                onClick={() => setScreen("shadowing")}
+              >
+                🔁 Shadowing
               </button>
               <button className="rounded-xl bg-ink px-4 py-2 text-sm font-medium text-white" onClick={logout}>
                 Logout
@@ -247,6 +261,13 @@ export default function HomePage() {
               </div>
             )}
           </section>
+        ) : null}
+        {screen === "progress" ? (
+          <ProgressDashboard token={accessToken} />
+        ) : null}
+
+        {screen === "shadowing" ? (
+          <ShadowingPanel token={accessToken} sessionMessages={activeMessages} />
         ) : null}
       </div>
     </main>

@@ -1,3 +1,4 @@
+import hashlib
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -36,6 +37,8 @@ class Session(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     topic: Mapped[str] = mapped_column(String(120))
     persona_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # nível CEFR (A1, A2, B1, B2, C1, C2) escolhido pelo usuário
+    cefr_level: Mapped[str | None] = mapped_column(String(4), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utc_now, onupdate=_utc_now
@@ -81,6 +84,9 @@ class Flashcard(Base):
     repetitions: Mapped[int] = mapped_column(Integer, default=0)
     ease_factor: Mapped[float] = mapped_column(Float, default=2.5)
     lapses: Mapped[int] = mapped_column(Integer, default=0)
+    # campos FSRS v4
+    stability: Mapped[float] = mapped_column(Float, default=0.0)
+    difficulty: Mapped[float] = mapped_column(Float, default=5.0)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -106,3 +112,21 @@ class ReviewLog(Base):
     reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 
     flashcard: Mapped[Flashcard] = relationship(back_populates="review_logs")
+
+
+def _sentence_hash(sentence: str) -> str:
+    """Gera hash SHA-256 da sentença (para cache de análise)."""
+    return hashlib.sha256(sentence.strip().lower().encode()).hexdigest()
+
+
+class AnalysisCache(Base):
+    """Cache de análise LLM por sentença — evita chamadas repetidas à API."""
+
+    __tablename__ = "analysis_cache"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    sentence_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    analysis_json: Mapped[dict] = mapped_column(JSON)
+    provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

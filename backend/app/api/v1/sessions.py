@@ -21,6 +21,7 @@ async def create_session(
         user_id=current_user.id,
         topic=payload.topic,
         persona_prompt=payload.persona_prompt,
+        cefr_level=payload.cefr_level,
     )
     db.add(session_obj)
     await db.commit()
@@ -66,6 +67,8 @@ async def update_session(
         session_obj.topic = payload.topic
     if payload.persona_prompt is not None:
         session_obj.persona_prompt = payload.persona_prompt
+    if payload.cefr_level is not None:
+        session_obj.cefr_level = payload.cefr_level
 
     await db.commit()
     await db.refresh(session_obj)

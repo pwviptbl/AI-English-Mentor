@@ -1,8 +1,10 @@
 import type {
   AnalysisResponse,
   ChatResponse,
+  DailyReviewStat,
   Flashcard,
   Message,
+  ProgressOverview,
   ReviewStats,
   Session,
   User,
@@ -35,8 +37,6 @@ function buildApiBaseCandidates(): string[] {
 
   const primary = getApiBase();
   add(primary);
-
-  // Handle localhost/127.0.0.1 resolution differences in some environments.
   add(primary.replace("://localhost:", "://127.0.0.1:"));
   add(primary.replace("://127.0.0.1:", "://localhost:"));
 
@@ -163,6 +163,8 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
   return response.json() as Promise<T>;
 }
 
+// ─── Autenticação ─────────────────────────────────────────────────────────────
+
 export async function register(full_name: string, email: string, password: string): Promise<User> {
   return request<User>("/auth/register", {
     method: "POST",
@@ -181,16 +183,25 @@ export async function me(token: string): Promise<User> {
   return request<User>("/auth/me", {}, token);
 }
 
+// ─── Sessões ──────────────────────────────────────────────────────────────────
+
 export async function listSessions(token: string): Promise<Session[]> {
   return request<Session[]>("/sessions", {}, token);
 }
 
-export async function createSession(token: string, topic: string, persona_prompt?: string): Promise<Session> {
+export async function createSession(
+  token: string,
+  topic: string,
+  persona_prompt?: string,
+  cefr_level?: string | null,
+): Promise<Session> {
   return request<Session>("/sessions", {
     method: "POST",
-    body: JSON.stringify({ topic, persona_prompt }),
+    body: JSON.stringify({ topic, persona_prompt, cefr_level }),
   }, token);
 }
+
+// ─── Mensagens ────────────────────────────────────────────────────────────────
 
 export async function listMessages(token: string, sessionId: string): Promise<Message[]> {
   return request<Message[]>(`/sessions/${sessionId}/messages`, {}, token);
@@ -202,6 +213,96 @@ export async function sendChat(token: string, session_id: string, text_raw: stri
     body: JSON.stringify({ session_id, text_raw }),
   }, token);
 }
+
+/**
+ * Versão SSE do sendChat — chama onChunk por cada pedaço do reply do assistente.
+ * Retorna o `ChatResponse` reconstruído quando o stream terminar.
+ */
+export async function sendChatStream(
+  token: string,
+  session_id: string,
+  text_raw: string,
+  onChunk: (chunk: string) => void,
+  onCorrection: (meta: ChatResponse["correction_meta"] & { user_message_id: string; corrected_text: string }) => void,
+): Promise<{ assistant_message_id: string; full_reply: string }> {
+  const apiBase = getApiBase();
+  const url = `${apiBase}/chat/stream`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ session_id, text_raw }),
+    cache: "no-store",
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Chat stream falhou: ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result = { assistant_message_id: "", full_reply: "" };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const raw = line.slice(6).trim();
+      if (!raw || raw === "[DONE]") continue;
+
+      try {
+        const event = JSON.parse(raw) as {
+          type: string;
+          text?: string;
+          user_message_id?: string;
+          corrected_text?: string;
+          changed?: boolean;
+          notes?: string;
+          categories?: string[];
+          provider?: string;
+          model?: string;
+          assistant_message_id?: string;
+          full_reply?: string;
+        };
+
+        if (event.type === "correction") {
+          onCorrection({
+            user_message_id: event.user_message_id ?? "",
+            corrected_text: event.corrected_text ?? "",
+            changed: event.changed ?? false,
+            notes: event.notes ?? "",
+            categories: event.categories ?? [],
+            provider: event.provider ?? "",
+            model: event.model ?? "",
+          });
+        } else if (event.type === "chunk" && event.text) {
+          onChunk(event.text);
+        } else if (event.type === "done") {
+          result = {
+            assistant_message_id: event.assistant_message_id ?? "",
+            full_reply: event.full_reply ?? "",
+          };
+        }
+      } catch {
+        // ignora eventos malformados
+      }
+    }
+  }
+
+  return result;
+}
+
+// ─── Análise ──────────────────────────────────────────────────────────────────
 
 export async function analyzeMessage(token: string, messageId: string): Promise<AnalysisResponse> {
   return request<AnalysisResponse>(`/messages/${messageId}/analysis`, {
@@ -218,6 +319,8 @@ export async function lookupDictionaryWord(token: string, word: string): Promise
 }> {
   return request(`/dictionary/lookup?word=${encodeURIComponent(word)}`, {}, token);
 }
+
+// ─── SRS / Flashcards ─────────────────────────────────────────────────────────
 
 export async function addFlashcard(token: string, payload: {
   word: string;
@@ -250,4 +353,14 @@ export async function reviewFlashcard(
 
 export async function reviewStats(token: string): Promise<ReviewStats> {
   return request<ReviewStats>("/reviews/stats", {}, token);
+}
+
+// ─── Progresso / Dashboard ────────────────────────────────────────────────────
+
+export async function progressOverview(token: string): Promise<ProgressOverview> {
+  return request<ProgressOverview>("/stats/overview", {}, token);
+}
+
+export async function reviewHistory(token: string, days = 14): Promise<DailyReviewStat[]> {
+  return request<DailyReviewStat[]>(`/reviews/history?days=${days}`, {}, token);
 }
