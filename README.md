@@ -8,59 +8,39 @@ Monorepo for a correction-first English conversation mentor.
 - Frontend: Next.js + Tailwind + Zustand
 - AI Router: Gemini (default), Ollama (local/free), or GitHub Copilot
 
-## Instalação em VPS (Digital Ocean e outros)
+## 🚀 Deploy em VPS (DigitalOcean, AWS, etc.)
 
-Siga este passo a passo para rodar o projeto em um servidor Linux (Ubuntu/Debian) e acessar pelo celular.
+Para rodar em servidores (especialmente com < 4GB de RAM), use o script de configuração automática:
 
-### 1. Preparação (no servidor)
+1.  **Acesse seu servidor via SSH**:
+    ```bash
+    ssh root@seu-ip
+    ```
+2.  **Clone o repositório e entre na pasta**:
+    ```bash
+    git clone <SEU_REPO_URL>
+    cd AI-English-Mentor
+    ```
+3.  **Rode o script de setup (APENAS NA PRIMEIRA VEZ)**:
+    Isso instala Docker, e configura SWAP (essencial para evitar erros de memória no build).
+    ```bash
+    chmod +x setup_vps.sh
+    ./setup_vps.sh
+    ```
+    *(Você precisará deslogar e logar novamente no SSH para o Docker funcionar sem sudo)*
 
-Instale Git e Docker:
+4.  **Configure as variáveis de ambiente**:
+    ```bash
+    cp .env.deploy.example .env
+    nano .env
+    # Edite JWT_SECRET_KEY, GEMINI_API_KEY, e API_BASE_URL (seu IP)
+    ```
 
-```bash
-sudo apt update && sudo apt install -y git
-# Instale Docker (script oficial)
-curl -fsSL https://get.docker.com | sh
-```
-
-### 2. Clonar o projeto
-
-```bash
-git clone https://github.com/pwviptbl/AI-English-Mentor.git
-cd AI-English-Mentor
-```
-
-### 3. Configurar Variáveis de Ambiente
-
-Copie o arquivo de exemplo para `.env`:
-
-```bash
-cp .env.deploy.example .env
-```
-
-Edite o arquivo `.env` com seu editor favorito (nano/vim):
-```bash
-nano .env
-```
-
-**Importante:**
-- Mude `API_BASE_URL` para o **IP PÚBLICO** da sua VPS (ex: `http://159.223.x.x:8000/api/v1`).
-- Mude `ALLOWED_ORIGINS` para o IP PÚBLICO da sua VPS (ex: `http://159.223.x.x:3000`).
-- Adicione sua `GEMINI_API_KEY`.
-
-### 4. Rodar com Docker
-
-Como o Docker já encapsula tudo (banco de dados, python, nodejs), basta rodar:
-
-```bash
-docker compose up -d --build
-```
-
-Isso vai baixar as dependências e iniciar os serviços. Pode levar alguns minutos na primeira vez.
-
-### 5. Acessar
-
-- Abra no navegador do seu celular: `http://SEU_IP_DA_VPS:3000`
-- O backend estará rodando em: `http://SEU_IP_DA_VPS:8000`
+5.  **Faça o deploy**:
+    ```bash
+    ./deploy.sh
+    ```
+    Isso vai buildar e subir os containers. O app estará em `http://IP:3000`.
 
 ---
 
