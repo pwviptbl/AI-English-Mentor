@@ -22,6 +22,7 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [speechRate, setSpeechRate] = useState(0.8);
 
   const appendMessages = useMentorStore((state) => state.appendMessages);
 
@@ -108,6 +109,7 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = "en-US";
+    utterance.rate = speechRate;
     window.speechSynthesis.speak(utterance);
   }
 
@@ -115,7 +117,22 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
     <section className="rounded-2xl border border-emerald-900/20 bg-panel p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Conversation</h2>
-        {sessionId ? <span className="text-xs text-ink/50">Session active</span> : null}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-ink/60" htmlFor="speech-rate">
+            Voice speed
+          </label>
+          <select
+            id="speech-rate"
+            className="rounded-md border border-emerald-900/20 bg-white px-2 py-1 text-xs"
+            value={speechRate}
+            onChange={(event) => setSpeechRate(Number(event.target.value))}
+          >
+            <option value={0.7}>Slow</option>
+            <option value={0.8}>Study</option>
+            <option value={1}>Normal</option>
+          </select>
+          {sessionId ? <span className="text-xs text-ink/50">Session active</span> : null}
+        </div>
       </div>
 
       <div className="mt-3 h-[420px] overflow-y-auto rounded-xl border border-emerald-900/10 bg-white p-3">
