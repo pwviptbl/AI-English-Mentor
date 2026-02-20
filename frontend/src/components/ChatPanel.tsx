@@ -197,7 +197,7 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
                 className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${isUser ? "bg-accent text-white" : "bg-white border border-amber-800/15"
                   }`}
               >
-                <p>{m.content_final}</p>
+                <p>{isUser ? m.content_raw : m.content_final}</p>
 
                 {/* Correção inline + categorias de erro */}
                 {isUser && wasChanged && (
@@ -234,11 +234,6 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
                       >
                         🔬
                       </button>
-                      {m.provider && (
-                        <span className="ml-auto text-[10px] opacity-40 uppercase tracking-wide">
-                          {m.provider} {m.model ? `• ${m.model}` : ""}
-                        </span>
-                      )}
                     </>
                   )}
                 </div>
