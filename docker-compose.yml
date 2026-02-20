@@ -44,8 +44,8 @@ services:
     build:
       context: ./frontend
     container_name: ai_mentor_frontend
-    environment:
-      NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:8000/api/v1}
+    env_file:
+      - ./backend/.env
     volumes:
       - ./frontend:/app
       - /app/node_modules
