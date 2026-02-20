@@ -23,5 +23,14 @@ git pull
 echo "🐳 Construindo e iniciando containers..."
 docker compose up -d --build
 
+echo "⏳ Aguardando backend ficar pronto (/healthz)..."
+for i in $(seq 1 60); do
+    if curl -fsS http://127.0.0.1:8000/healthz >/dev/null 2>&1; then
+        echo "✅ Backend OK."
+        break
+    fi
+    sleep 1
+done
+
 echo "✅ Deploy concluído!"
 echo "Verifique os logs com: docker compose logs -f"
