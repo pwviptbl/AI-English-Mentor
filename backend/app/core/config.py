@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     log_level: str = "INFO"
 
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/ai_english_mentor"
+    database_url: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/ai_english_mentor"
 
     jwt_secret_key: str = "change-me-access"
     jwt_refresh_secret_key: str = "change-me-refresh"
