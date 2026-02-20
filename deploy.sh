@@ -17,6 +17,9 @@ if [ ! -f backend/.env ]; then
     fi
 fi
 
+# Cria um symlink silencioso na raiz para que o docker compose entenda as variáveis nativamente
+ln -nsf backend/.env .env
+
 echo "🔄 Baixando atualizações (git pull)..."
 git pull
 
