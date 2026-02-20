@@ -10,7 +10,7 @@ from app.schemas.providers import ProviderPreferenceUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-ALLOWED_PROVIDERS = {"gemini", "copilot"}
+ALLOWED_PROVIDERS = {"gemini"}
 
 
 @router.patch("/preferences/provider", response_model=UserResponse)
@@ -22,8 +22,7 @@ async def update_provider_preference(
     provider = payload.preferred_ai_provider.strip().lower()
     if provider not in ALLOWED_PROVIDERS:
         raise HTTPException(status_code=400, detail="unsupported provider")
-    if provider == "copilot" and not settings.enable_copilot:
-        raise HTTPException(status_code=400, detail="copilot provider is disabled")
+
 
     current_user.preferred_ai_provider = provider
     await db.commit()

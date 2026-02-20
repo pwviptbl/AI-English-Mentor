@@ -6,7 +6,7 @@ Monorepo for a correction-first English conversation mentor.
 
 - Backend: FastAPI + SQLAlchemy Async + PostgreSQL
 - Frontend: Next.js + Tailwind + Zustand
-- AI Router: Gemini (default), Ollama (local/free), or GitHub Copilot
+- AI Router: Gemini (default) or Ollama (local/free)
 
 ## 🚀 Deploy em VPS (DigitalOcean, AWS, etc.)
 
@@ -62,25 +62,6 @@ Se quiser usar o Ollama na VPS para economizar API Key (exige +/- 4GB RAM para m
 
 ---
 
-## GitHub Copilot (Opcional)
-
-Se preferir usar o GitHub Copilot como provedor de IA:
-
-1.  **Autenticação**:
-    No servidor ou localmente, rode:
-    ```bash
-    cd backend
-    # Use o script no ambiente virtual
-    source .venv/bin/activate
-    python3 -m app.cli.copilot_auth login
-    ```
-    Siga as instruções no terminal para autorizar no seu navegador.
-2.  **Configuração**:
-    No `.env`, altere:
-    ```env
-    DEFAULT_AI_PROVIDER=copilot
-    ENABLE_COPILOT=true
-    ```
 
 ---
 

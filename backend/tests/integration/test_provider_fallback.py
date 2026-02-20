@@ -23,7 +23,7 @@ class BrokenPrimaryProvider(BaseLLMProvider):
 
 
 class HealthyFallbackProvider(BaseLLMProvider):
-    name = "copilot"
+    name = "secondary"
 
     def is_available(self) -> bool:
         return True
@@ -59,7 +59,7 @@ def test_chat_fallback_between_providers(client) -> None:
     fallback_router = LLMRouter(
         providers={
             "gemini": BrokenPrimaryProvider(),
-            "copilot": HealthyFallbackProvider(),
+            "secondary": HealthyFallbackProvider(),
         }
     )
     app.dependency_overrides[get_llm_router] = lambda: fallback_router
@@ -83,4 +83,4 @@ def test_chat_fallback_between_providers(client) -> None:
     payload = chat_response.json()
     assert payload["corrected_text"] == "Fallback corrected"
     assert payload["assistant_reply"] == "Fallback assistant reply"
-    assert payload["provider_used"] == "copilot"
+    assert payload["provider_used"] == "secondary"

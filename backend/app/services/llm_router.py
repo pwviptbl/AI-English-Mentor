@@ -3,7 +3,6 @@ from collections.abc import AsyncGenerator
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.providers.base import BaseLLMProvider
-from app.providers.copilot_provider import CopilotProvider
 from app.providers.gemini_provider import GeminiProvider
 from app.providers.ollama_provider import OllamaProvider
 from app.services.errors import ProviderError, ProviderUnavailableError
@@ -19,7 +18,6 @@ class LLMRouter:
         else:
             self.providers: dict[str, BaseLLMProvider] = {
                 "gemini": GeminiProvider(),
-                "copilot": CopilotProvider(),
             }
             if settings.enable_ollama:
                 self.providers["ollama"] = OllamaProvider()
@@ -31,11 +29,7 @@ class LLMRouter:
                 names.append(name)
         return names
 
-    def copilot_authenticated(self) -> bool:
-        provider = self.providers.get("copilot")
-        if not provider:
-            return False
-        return provider.is_available()
+
 
     def _provider_order(self, provider_override: str | None, user_preference: str | None) -> list[str]:
         candidates: list[str] = []

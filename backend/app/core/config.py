@@ -29,7 +29,6 @@ class Settings(BaseSettings):
     cors_allow_all_dev: bool = True
 
     default_ai_provider: str = "gemini"
-    enable_copilot: bool = False
     enable_ollama: bool = False
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.2"
@@ -38,12 +37,6 @@ class Settings(BaseSettings):
     gemini_model_correction: str = "gemini-2.0-flash"
     gemini_model_chat: str = "gemini-2.0-flash"
     gemini_model_analysis: str = "gemini-2.0-flash"
-
-    copilot_model_correction: str = "gpt-4o"
-    copilot_model_chat: str = "gpt-4o"
-    copilot_model_analysis: str = "gpt-4o"
-    copilot_token_file: Path = Path(".github_oauth_token.json")
-    copilot_cache_file: Path = Path(".copilot_token_cache.json")
 
     correction_timeout_seconds: int = 8
     chat_timeout_seconds: int = 12

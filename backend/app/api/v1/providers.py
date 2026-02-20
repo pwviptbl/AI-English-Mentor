@@ -17,6 +17,4 @@ async def providers_status(
     return ProviderStatusResponse(
         default_provider=settings.default_ai_provider,
         available_providers=llm_router.available_provider_names(),
-        copilot_enabled=settings.enable_copilot,
-        copilot_authenticated=llm_router.copilot_authenticated(),
     )

@@ -51,7 +51,7 @@ async def test_llm_router_fallback_to_secondary_provider() -> None:
     router = LLMRouter(
         providers={
             "gemini": FailingProvider(),
-            "copilot": SuccessProvider("copilot"),
+            "secondary": SuccessProvider("secondary"),
         }
     )
 
@@ -63,5 +63,5 @@ async def test_llm_router_fallback_to_secondary_provider() -> None:
     )
 
     assert result.corrected_text == "Fixed"
-    assert provider == "copilot"
+    assert provider == "secondary"
     assert model == "success-model"

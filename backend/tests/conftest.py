@@ -9,7 +9,6 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test_ai_mentor.db")
 os.environ.setdefault("JWT_SECRET_KEY", "test-access-secret")
 os.environ.setdefault("JWT_REFRESH_SECRET_KEY", "test-refresh-secret")
 os.environ.setdefault("DEFAULT_AI_PROVIDER", "gemini")
-os.environ.setdefault("ENABLE_COPILOT", "false")
 
 from app.api.deps import get_llm_router
 from app.db.base import Base
@@ -22,8 +21,7 @@ class FakeLLMRouter:
     def available_provider_names(self) -> list[str]:
         return ["gemini"]
 
-    def copilot_authenticated(self) -> bool:
-        return False
+
 
     async def correct_input(self, raw_text: str, context: dict, provider_override: str | None, user_preference: str | None):
         return (
