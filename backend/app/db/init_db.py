@@ -1,10 +1,17 @@
-from sqlalchemy import text
+import asyncio
 
+from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError, OperationalError
+
+from app.core.config import settings
+from app.core.logging import get_logger
 from app.db.base import Base
 from app.db.session import engine
 
 # Ensure model imports register metadata.
 from app.db import models  # noqa: F401
+
+logger = get_logger(__name__)
 
 
 async def _ensure_user_full_name_column() -> None:
@@ -86,8 +93,42 @@ async def _ensure_flashcards_unique_word_per_user() -> None:
             )
 
 
-async def init_db() -> None:
+async def _run_init_db_once() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await _ensure_user_full_name_column()
     await _ensure_flashcards_unique_word_per_user()
+
+
+async def init_db() -> None:
+    max_retries = max(settings.db_init_max_retries, 0)
+    delay_seconds = max(settings.db_init_retry_delay_seconds, 0.1)
+    attempts = max_retries + 1
+
+    for attempt in range(1, attempts + 1):
+        try:
+            await _run_init_db_once()
+            if attempt > 1:
+                logger.info(
+                    "db.init.recovered",
+                    extra={"attempt": attempt, "attempts_total": attempts},
+                )
+            return
+        except (OperationalError, DBAPIError, OSError) as exc:
+            if attempt == attempts:
+                logger.exception(
+                    "db.init.failed",
+                    extra={"attempt": attempt, "attempts_total": attempts},
+                )
+                raise
+
+            logger.warning(
+                "db.init.retrying",
+                extra={
+                    "attempt": attempt,
+                    "attempts_total": attempts,
+                    "retry_in_seconds": delay_seconds,
+                    "error_type": type(exc).__name__,
+                },
+            )
+            await asyncio.sleep(delay_seconds)

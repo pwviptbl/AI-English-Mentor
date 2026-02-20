@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     database_url: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/ai_english_mentor"
+    db_init_max_retries: int = 15
+    db_init_retry_delay_seconds: float = 2.0
 
     jwt_secret_key: str = "change-me-access"
     jwt_refresh_secret_key: str = "change-me-refresh"

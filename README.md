@@ -45,6 +45,11 @@ Para rodar em servidores (especialmente com < 4GB de RAM), use o script de confi
     ```
     Isso vai buildar e subir os containers. O app estará em `http://IP:3000`.
 
+Para atualizar **só o frontend** sem recriar backend/postgres:
+```bash
+docker compose up -d --build --no-deps frontend
+```
+
 ---
 
 ## Ollama (Opcional: IA Local Gratuita)
