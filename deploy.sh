@@ -3,22 +3,19 @@
 
 echo "🚀 Iniciando deploy do AI English Mentor..."
 
-if [ ! -f backend/.env ]; then
-    echo "⚠️ Arquivo backend/.env não encontrado!"
-    if [ -f backend/.env.example ]; then
-        echo "📋 Copiando backend/.env.example para backend/.env..."
-        cp backend/.env.example backend/.env
-        echo "✅ backend/.env criado automaticamente."
-        echo "🛑 Pare o script, edite backend/.env com seu IP (API_BASE_URL) e chaves, e rode deploy.sh de novo."
+if [ ! -f .env ]; then
+    echo "⚠️ Arquivo .env não encontrado!"
+    if [ -f .env.example ]; then
+        echo "📋 Copiando .env.example para o seu novo arquivo de configuração (.env)..."
+        cp .env.example .env
+        echo "✅ Arquivo .env criado automaticamente na raiz do projeto."
+        echo "🛑 Pare por aqui: Abra o arquivo .env, edite com seu IP e chaves do Google, e rode ./deploy.sh de novo."
         exit 1
     else
-        echo "❌ Erro: backend/.env.example não encontrado."
+        echo "❌ Erro: .env.example não encontrado."
         exit 1
     fi
 fi
-
-# Cria um symlink silencioso na raiz para que o docker compose entenda as variáveis nativamente
-ln -nsf backend/.env .env
 
 echo "🔄 Baixando atualizações (git pull)..."
 git pull

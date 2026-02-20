@@ -5,6 +5,9 @@ __pycache__/
 .pytest_cache/
 .coverage
 
+# Project root env
+.env
+
 # Backend env and tokens
 backend/.env
 backend/.github_oauth_token.json
