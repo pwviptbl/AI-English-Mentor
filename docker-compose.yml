@@ -6,8 +6,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ai_english_mentor
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -35,11 +33,7 @@ services:
     ports:
       - "8000:8000"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()\"",
-        ]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()\"" ]
       interval: 5s
       timeout: 3s
       retries: 20

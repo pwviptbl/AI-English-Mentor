@@ -32,7 +32,14 @@ rate_limiter = InMemoryRateLimiter()
 
 def rate_limit_dependency(limit: int) -> Callable:
     async def dependency(request: Request) -> None:
-        client_ip = request.client.host if request.client else "unknown"
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            client_ip = forwarded_for.split(",")[0].strip()
+        elif request.headers.get("x-real-ip"):
+            client_ip = request.headers.get("x-real-ip")
+        else:
+            client_ip = request.client.host if request.client else "unknown"
+            
         key = f"{client_ip}:{request.url.path}"
         allowed = rate_limiter.check(key, limit=limit, window_seconds=settings.rate_limit_window_seconds)
         if not allowed:
