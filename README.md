@@ -31,12 +31,10 @@ Para rodar em servidores (especialmente com < 4GB de RAM), use o script de confi
 
 4.  **Configure as variáveis de ambiente**:
     ```bash
-    cd backend
     cp .env.example .env
     nano .env
-    # Edite JWT_SECRET_KEY, GEMINI_API_KEY, e API_BASE_URL (coloque seu IP, ex: http://137.184.20.185:8000/api/v1)
-    # Volte para a raiz depois de salvar:
-    cd ..
+    # Edite JWT_SECRET_KEY, GEMINI_API_KEY, NEXT_PUBLIC_API_BASE_URL e,
+    # se necessário, POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB
     ```
 
 5.  **Faça o deploy**:
@@ -48,6 +46,17 @@ Para rodar em servidores (especialmente com < 4GB de RAM), use o script de confi
 Para atualizar **só o frontend** sem recriar backend/postgres:
 ```bash
 docker compose up -d --build --no-deps frontend
+```
+
+Se o backend falhar com `password authentication failed for user "postgres"`:
+```bash
+# opção 1: manter dados atuais (recomendado)
+# ajuste POSTGRES_PASSWORD no .env para o mesmo valor usado quando o volume foi criado
+docker compose up -d --force-recreate
+
+# opção 2: recriar banco do zero (apaga dados)
+docker compose down -v
+docker compose up -d --build
 ```
 
 ---
