@@ -33,15 +33,20 @@ Para rodar em servidores (especialmente com < 4GB de RAM), use o script de confi
     ```bash
     cp .env.example .env
     nano .env
-    # Edite JWT_SECRET_KEY, GEMINI_API_KEY, NEXT_PUBLIC_API_BASE_URL e,
+    # Edite JWT_SECRET_KEY, GEMINI_API_KEY e,
     # se necessário, POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_DB
     ```
+    Para deploy com Nginx, mantenha:
+    ```env
+    NEXT_PUBLIC_API_BASE_URL=/api/v1
+    ```
+    Se você já tinha um `.env` antigo com `http://localhost:8000/api/v1`, troque para `/api/v1`.
 
 5.  **Faça o deploy**:
     ```bash
     ./deploy.sh
     ```
-    Isso vai buildar e subir os containers. O app estará em `http://IP:3000`.
+    Isso vai buildar e subir os containers. O app estará em `http://IP`.
 
 Para atualizar **só o frontend** sem recriar backend/postgres:
 ```bash
@@ -57,6 +62,23 @@ docker compose up -d --force-recreate
 # opção 2: recriar banco do zero (apaga dados)
 docker compose down -v
 docker compose up -d --build
+```
+
+---
+
+## Nginx reverse proxy (produção)
+
+O deploy via `docker-compose` agora usa Nginx como entrada única:
+
+- Público: porta `80` (`nginx`)
+- Interno (Docker network): `frontend:3000` e `backend:8000`
+- API exposta via `/api/*`
+- Healthcheck da API via `http://IP/healthz`
+- SSE (`/api/v1/chat/stream`) com buffering desativado no proxy
+
+Se algo falhar, veja:
+```bash
+docker compose logs -f nginx backend frontend
 ```
 
 ---

@@ -51,8 +51,10 @@ echo "🛡️  Configurando Firewall (UFW)..."
 sudo ufw allow 22/tcp   # SSH
 sudo ufw allow 80/tcp   # HTTP
 sudo ufw allow 443/tcp  # HTTPS
-sudo ufw allow 3000/tcp # Frontend (dev/preview)
-sudo ufw allow 8000/tcp # Backend (API)
+# Com Nginx reverse proxy, frontend/backend ficam internos ao Docker.
+# Abra 3000/8000 apenas se precisar depurar externamente.
+# sudo ufw allow 3000/tcp
+# sudo ufw allow 8000/tcp
 # Opcional: Bloquear outras entradas
 # sudo ufw default deny incoming
 # sudo ufw default allow outgoing
