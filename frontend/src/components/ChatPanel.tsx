@@ -217,25 +217,23 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
                 {/* Botões de ação na mensagem */}
                 <div className="mt-2 flex items-center gap-2">
                   {!isUser && (
-                    <>
-                      <button
-                        className="text-xs opacity-60 hover:opacity-100"
-                        onClick={() => speak(m.content_final)}
-                        type="button"
-                        title="Ouvir"
-                      >
-                        🔊
-                      </button>
-                      <button
-                        className="text-xs opacity-60 hover:opacity-100"
-                        onClick={() => handleAnalyze(m.id)}
-                        type="button"
-                        title="Analisar gramática"
-                      >
-                        🔬
-                      </button>
-                    </>
+                    <button
+                      className="text-xs opacity-60 hover:opacity-100"
+                      onClick={() => speak(m.content_final)}
+                      type="button"
+                      title="Ouvir"
+                    >
+                      🔊
+                    </button>
                   )}
+                  <button
+                    className="text-xs opacity-60 hover:opacity-100"
+                    onClick={() => handleAnalyze(m.id)}
+                    type="button"
+                    title="Analisar sentença"
+                  >
+                    🔬
+                  </button>
                 </div>
               </div>
             </div>
