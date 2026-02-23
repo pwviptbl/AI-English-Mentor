@@ -268,7 +268,7 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
       {/* Formulário de input */}
       <form
         onSubmit={handleSend}
-        className="border-t border-amber-800/10 bg-white px-4 pt-2 pb-3 flex flex-col gap-2"
+        className="border-t border-amber-800/10 bg-white rounded-t-2xl px-4 pt-2 pb-3 flex flex-col gap-2"
       >
         {/* Linha 1 — ferramentas de saída (modo + velocidade da fala) */}
         <div className="flex items-center gap-2">
