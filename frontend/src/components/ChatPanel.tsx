@@ -62,6 +62,8 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
   const [analysisData, setAnalysisData] = useState<AnalysisResponse | null>(null);
   const [analysisMessageId, setAnalysisMessageId] = useState<string | null>(null);
 
+  const [speechRate, setSpeechRate] = useState(0.8); // Velocidade da fala (0.5 = lento, 1.0 = normal, 1.5 = rápido)
+
   const bottomRef = useRef<HTMLDivElement>(null);
 
 
@@ -79,7 +81,7 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.rate = 0.95;
+    utterance.rate = speechRate;
     window.speechSynthesis.speak(utterance);
   }
 
@@ -277,6 +279,22 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
         >
           {useStream ? "⚡" : "📦"}
         </button>
+
+        {/* Controle de velocidade da fala */}
+        <div className="flex items-center gap-1.5 border border-gray-200 rounded px-2 py-1" title="Velocidade da fala">
+          <span className="text-xs text-ink/50">🔊</span>
+          <input
+            type="range"
+            min="0.5"
+            max="1.5"
+            step="0.1"
+            value={speechRate}
+            onChange={(e) => setSpeechRate(Number(e.target.value))}
+            className="w-16 h-1 accent-accent"
+            title={`Velocidade: ${speechRate.toFixed(1)}x`}
+          />
+          <span className="text-[10px] text-ink/50 w-7">{speechRate.toFixed(1)}x</span>
+        </div>
 
         {/* Input de voz */}
         <VoiceInput
