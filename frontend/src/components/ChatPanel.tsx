@@ -268,61 +268,67 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
       {/* Formulário de input */}
       <form
         onSubmit={handleSend}
-        className="border-t border-amber-800/10 bg-white px-4 py-3 flex gap-2 items-center"
+        className="border-t border-amber-800/10 bg-white px-4 pt-2 pb-3 flex flex-col gap-2"
       >
-        {/* Botão de modo: stream / sync */}
-        <button
-          type="button"
-          title={useStream ? "Modo streaming (SSE)" : "Modo síncrono"}
-          className="text-xs rounded px-2 py-1 border border-gray-200 text-ink/50 hover:border-accent transition"
-          onClick={() => setUseStream(!useStream)}
-        >
-          {useStream ? "⚡" : "📦"}
-        </button>
+        {/* Linha 1 — ferramentas de saída (modo + velocidade da fala) */}
+        <div className="flex items-center gap-2">
+          {/* Botão de modo: stream / sync */}
+          <button
+            type="button"
+            title={useStream ? "Modo streaming (SSE)" : "Modo síncrono"}
+            className="text-xs rounded px-2 py-1 border border-gray-200 text-ink/50 hover:border-accent transition"
+            onClick={() => setUseStream(!useStream)}
+          >
+            {useStream ? "⚡" : "📦"}
+          </button>
 
-        {/* Controle de velocidade da fala */}
-        <div className="flex items-center gap-1.5 border border-gray-200 rounded px-2 py-1" title="Velocidade da fala">
-          <span className="text-xs text-ink/50">🔊</span>
-          <input
-            type="range"
-            min="0.5"
-            max="1.5"
-            step="0.1"
-            value={speechRate}
-            onChange={(e) => setSpeechRate(Number(e.target.value))}
-            className="w-16 h-1 accent-accent"
-            title={`Velocidade: ${speechRate.toFixed(1)}x`}
-          />
-          <span className="text-[10px] text-ink/50 w-7">{speechRate.toFixed(1)}x</span>
+          {/* Controle de velocidade da fala */}
+          <div className="flex items-center gap-1.5 border border-gray-200 rounded px-2 py-1" title="Velocidade da fala">
+            <span className="text-xs text-ink/50">🔊</span>
+            <input
+              type="range"
+              min="0.5"
+              max="1.5"
+              step="0.1"
+              value={speechRate}
+              onChange={(e) => setSpeechRate(Number(e.target.value))}
+              className="w-20 h-1 accent-accent"
+              title={`Velocidade: ${speechRate.toFixed(1)}x`}
+            />
+            <span className="text-[10px] text-ink/50 w-7">{speechRate.toFixed(1)}x</span>
+          </div>
         </div>
 
-        {/* Input de voz */}
-        <VoiceInput
-          onTranscript={(text) => setInput((prev) => prev ? prev + " " + text : text)}
-          disabled={loading}
-        />
+        {/* Linha 2 — ferramentas de entrada (voz + texto + enviar) */}
+        <div className="flex gap-2 items-center">
+          {/* Input de voz */}
+          <VoiceInput
+            onTranscript={(text) => setInput((prev) => prev ? prev + " " + text : text)}
+            disabled={loading}
+          />
 
-        <input
-          className="flex-1 rounded-xl border border-amber-800/20 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-accent"
-          placeholder="Type in English (or Portuguese)…"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={loading}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void handleSend(e as unknown as FormEvent);
-            }
-          }}
-        />
+          <input
+            className="flex-1 rounded-xl border border-amber-800/20 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-accent"
+            placeholder="Type in English (or Portuguese)…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={loading}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void handleSend(e as unknown as FormEvent);
+              }
+            }}
+          />
 
-        <button
-          className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          type="submit"
-          disabled={loading || !input.trim()}
-        >
-          {loading ? "…" : "Enviar"}
-        </button>
+          <button
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            type="submit"
+            disabled={loading || !input.trim()}
+          >
+            {loading ? "…" : "Enviar"}
+          </button>
+        </div>
       </form>
 
       {/* Modal de análise */}
