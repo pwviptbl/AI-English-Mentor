@@ -7,6 +7,10 @@ from fastapi import HTTPException, Request
 
 from app.core.config import settings
 
+_SECONDS_PER_DAY = 86_400
+
+SECONDS_PER_DAY = _SECONDS_PER_DAY  # alias exportável
+
 
 class InMemoryRateLimiter:
     def __init__(self) -> None:
@@ -26,8 +30,20 @@ class InMemoryRateLimiter:
             bucket.append(now)
             return True
 
+    def count(self, key: str, window_seconds: int) -> int:
+        """Retorna quantas requisições estão registradas na janela (sem adicionar nova)."""
+        now = monotonic()
+        with self._lock:
+            bucket = self._buckets[key]
+            while bucket and now - bucket[0] > window_seconds:
+                bucket.popleft()
+            return len(bucket)
+
 
 rate_limiter = InMemoryRateLimiter()
+
+# Instância dedicada ao controle de limite diário por usuário
+daily_user_limiter = InMemoryRateLimiter()
 
 
 def rate_limit_dependency(limit: int) -> Callable:

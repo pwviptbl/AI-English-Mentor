@@ -27,6 +27,7 @@ async def register_user(payload: UserRegister, db: AsyncSession = Depends(get_db
         full_name=payload.full_name.strip(),
         email=payload.email,
         password_hash=hash_password(payload.password),
+        is_active=False,  # aguarda ativação pelo admin
     )
     db.add(user)
     await db.commit()
@@ -39,6 +40,12 @@ async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)) -> Token
     user = (await db.execute(select(User).where(User.email == payload.email))).scalar_one_or_none()
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="invalid email or password")
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=403,
+            detail="account pending activation — contact the administrator",
+        )
 
     return TokenPair(
         access_token=create_access_token(user.id),

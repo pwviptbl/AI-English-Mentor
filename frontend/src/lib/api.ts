@@ -1,4 +1,5 @@
 import type {
+  AdminUser,
   AnalysisResponse,
   ChatResponse,
   DailyReviewStat,
@@ -7,6 +8,7 @@ import type {
   ProgressOverview,
   ReviewStats,
   Session,
+  TierLimits,
   User,
 } from "./types";
 import { useMentorStore } from "@/store/useMentorStore";
@@ -159,6 +161,9 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     const text = await response.text().catch(() => "");
     throw new Error(text || `Request failed: ${response.status}`);
   }
+
+  // 204 No Content — nenhum body para parsear
+  if (response.status === 204) return undefined as unknown as T;
 
   return response.json() as Promise<T>;
 }
@@ -389,4 +394,49 @@ export async function progressOverview(token: string): Promise<ProgressOverview>
 
 export async function reviewHistory(token: string, days = 14): Promise<DailyReviewStat[]> {
   return request<DailyReviewStat[]>(`/reviews/history?days=${days}`, {}, token);
+}
+
+// ─── Perfil do usuário ────────────────────────────────────────────────────────
+
+export async function updateProfile(
+  token: string,
+  payload: { full_name?: string; current_password?: string; new_password?: string },
+): Promise<User> {
+  return request<User>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }, token);
+}
+
+// ─── Administração ────────────────────────────────────────────────────────────
+
+export async function adminListUsers(token: string): Promise<AdminUser[]> {
+  return request<AdminUser[]>("/admin/users", {}, token);
+}
+
+export async function adminUpdateUser(
+  token: string,
+  userId: string,
+  payload: { tier?: string; is_admin?: boolean; is_active?: boolean },
+): Promise<AdminUser> {
+  return request<AdminUser>(`/admin/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  }, token);
+}
+
+export async function adminDeleteUser(token: string, userId: string): Promise<void> {
+  await request<void>(`/admin/users/${userId}`, { method: "DELETE" }, token);
+}
+
+export async function adminGetTierLimits(token: string): Promise<TierLimits[]> {
+  return request<TierLimits[]>("/admin/tier-limits", {}, token);
+}
+
+export async function adminUpdateTierLimits(
+  token: string,
+  tier: string,
+  payload: { daily_chat_limit: number; daily_analysis_limit: number },
+): Promise<TierLimits> {
+  return request<TierLimits>(`/admin/tier-limits/${tier}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  }, token);
 }

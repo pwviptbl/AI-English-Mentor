@@ -22,8 +22,53 @@ fi
 echo "🔄 Baixando atualizações (git pull)..."
 git pull
 
-echo "🐳 Construindo e iniciando containers..."
-docker compose up -d --build
+echo "🐳 Construindo imagens..."
+docker compose build
+
+echo "🗄️  Iniciando banco de dados..."
+docker compose up -d postgres
+
+echo "⏳ Aguardando PostgreSQL ficar pronto..."
+for i in $(seq 1 30); do
+    if docker compose exec -T postgres pg_isready -U "${POSTGRES_USER:-postgres}" -d "${POSTGRES_DB:-ai_english_mentor}" >/dev/null 2>&1; then
+        echo "✅ PostgreSQL pronto."
+        break
+    fi
+    if [ "$i" -eq 30 ]; then
+        echo "❌ PostgreSQL não respondeu a tempo."
+        exit 1
+    fi
+    sleep 2
+done
+
+echo "🔁 Executando migrações (alembic upgrade head)..."
+
+# Detecta banco legado: tabela users existe mas alembic_version não (ou está vazia).
+# Nesses casos, fecha o histórico no head sem re-executar DDL que já foi aplicado.
+USERS_EXISTS=$(docker compose exec -T postgres psql \
+    -U "${POSTGRES_USER:-postgres}" \
+    -d "${POSTGRES_DB:-ai_english_mentor}" \
+    -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='users'" \
+    2>/dev/null || echo "0")
+
+ALEMBIC_ROWS=$(docker compose exec -T postgres psql \
+    -U "${POSTGRES_USER:-postgres}" \
+    -d "${POSTGRES_DB:-ai_english_mentor}" \
+    -tAc "SELECT COUNT(*) FROM alembic_version" 2>/dev/null || echo "0")
+
+USERS_EXISTS="${USERS_EXISTS//[[:space:]]/}"
+ALEMBIC_ROWS="${ALEMBIC_ROWS//[[:space:]]/}"
+
+if [ "${USERS_EXISTS:-0}" -gt "0" ] && [ "${ALEMBIC_ROWS:-0}" -eq "0" ]; then
+    echo "  ⚠️  Banco legado detectado (sem histórico Alembic) — registrando estado atual (stamp head)..."
+    docker compose run --rm backend alembic stamp head
+fi
+
+docker compose run --rm backend alembic upgrade head
+echo "✅ Migrações aplicadas."
+
+echo "🐳 Iniciando todos os serviços..."
+docker compose up -d
 
 echo "⏳ Aguardando backend ficar pronto (/healthz interno)..."
 backend_ready=0

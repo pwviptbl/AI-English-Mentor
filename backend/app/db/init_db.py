@@ -1,103 +1,67 @@
 import asyncio
 
-from sqlalchemy import text
+from sqlalchemy import select
 from sqlalchemy.exc import DBAPIError, OperationalError
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.db.base import Base
-from app.db.session import engine
-
-# Ensure model imports register metadata.
-from app.db import models  # noqa: F401
+from app.core.security import hash_password
+from app.db.models import TierLimits, User
 
 logger = get_logger(__name__)
 
 
-async def _ensure_user_full_name_column() -> None:
-    async with engine.begin() as conn:
-        dialect = conn.dialect.name
-        if dialect == "postgresql":
-            result = await conn.execute(
-                text(
-                    "SELECT 1 FROM information_schema.columns "
-                    "WHERE table_name = 'users' AND column_name = 'full_name'"
-                )
-            )
-            if result.scalar_one_or_none():
-                return
-            await conn.execute(
-                text("ALTER TABLE users ADD COLUMN full_name VARCHAR(120) NOT NULL DEFAULT 'Learner'")
-            )
+async def _ensure_admin_user() -> None:
+    """Cria a conta admin padrão se ainda não existir."""
+    from app.db.session import AsyncSessionLocal  # local import para evitar ciclo
+    async with AsyncSessionLocal() as db:
+        existing = (
+            await db.execute(select(User).where(User.email == settings.admin_email))
+        ).scalar_one_or_none()
+        if existing:
+            # garante que o admin padrão seja sempre admin e ativo mesmo após reset
+            changed = False
+            if not existing.is_admin:
+                existing.is_admin = True
+                changed = True
+            if not existing.is_active:
+                existing.is_active = True
+                changed = True
+            if changed:
+                await db.commit()
             return
+        admin = User(
+            full_name="Admin",
+            email=settings.admin_email,
+            password_hash=hash_password(settings.admin_password),
+            tier="pro",
+            is_admin=True,
+            is_active=True,
+        )
+        db.add(admin)
+        await db.commit()
+    logger.info("db.admin_user.created email=%s", settings.admin_email)
 
-        if dialect == "sqlite":
-            result = await conn.execute(text("PRAGMA table_info(users)"))
-            columns = [row[1] for row in result.fetchall()]
-            if "full_name" in columns:
-                return
-            await conn.execute(
-                text("ALTER TABLE users ADD COLUMN full_name VARCHAR(120) NOT NULL DEFAULT 'Learner'")
-            )
 
-
-async def _ensure_flashcards_unique_word_per_user() -> None:
-    async with engine.begin() as conn:
-        dialect = conn.dialect.name
-
-        if dialect == "postgresql":
-            await conn.execute(
-                text(
-                    """
-                    WITH ranked AS (
-                        SELECT
-                            id,
-                            row_number() OVER (
-                                PARTITION BY user_id, lower(word)
-                                ORDER BY created_at ASC, id ASC
-                            ) AS rn
-                        FROM flashcards
-                    )
-                    DELETE FROM flashcards f
-                    USING ranked r
-                    WHERE f.id = r.id AND r.rn > 1
-                    """
-                )
-            )
-            await conn.execute(
-                text(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS ux_flashcards_user_word_ci "
-                    "ON flashcards (user_id, lower(word))"
-                )
-            )
-            return
-
-        if dialect == "sqlite":
-            await conn.execute(
-                text(
-                    """
-                    DELETE FROM flashcards
-                    WHERE rowid NOT IN (
-                        SELECT MIN(rowid)
-                        FROM flashcards
-                        GROUP BY user_id, lower(word)
-                    )
-                    """
-                )
-            )
-            await conn.execute(
-                text(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS ux_flashcards_user_word_ci "
-                    "ON flashcards (user_id, lower(word))"
-                )
-            )
+async def _ensure_tier_limits() -> None:
+    """Garante que as linhas free e pro existam na tabela tier_limits."""
+    from app.db.session import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        for tier, chat, analysis in [("free", 20, 10), ("pro", 100, 50)]:
+            existing = (
+                await db.execute(select(TierLimits).where(TierLimits.tier == tier))
+            ).scalar_one_or_none()
+            if not existing:
+                db.add(TierLimits(tier=tier, daily_chat_limit=chat, daily_analysis_limit=analysis))
+        await db.commit()
+    logger.info("db.tier_limits.ensured")
 
 
 async def _run_init_db_once() -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    await _ensure_user_full_name_column()
-    await _ensure_flashcards_unique_word_per_user()
+    # O schema é gerenciado exclusivamente pelo Alembic (alembic upgrade head).
+    # Aqui apenas garantimos os dados iniciais obrigatórios.
+    await _ensure_tier_limits()
+    await _ensure_admin_user()
 
 
 async def init_db() -> None:

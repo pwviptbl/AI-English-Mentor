@@ -3,7 +3,25 @@ export type User = {
   full_name: string;
   email: string;
   preferred_ai_provider: string;
+  tier: string;       // "free" | "pro"
+  is_admin: boolean;
   created_at: string;
+};
+
+export type AdminUser = {
+  id: string;
+  full_name: string;
+  email: string;
+  tier: string;
+  is_admin: boolean;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type TierLimits = {
+  tier: string;
+  daily_chat_limit: number;
+  daily_analysis_limit: number;
 };
 
 export type Session = {

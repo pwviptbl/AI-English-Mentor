@@ -4,16 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AuthPanel } from "@/components/AuthPanel";
 import { AppHomePanel } from "@/components/AppHomePanel";
+import { AdminPanel } from "@/components/AdminPanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ConversationsPanel } from "@/components/ConversationsPanel";
 import { NewConversationPanel } from "@/components/NewConversationPanel";
+import { ProfilePanel } from "@/components/ProfilePanel";
 import { ProgressDashboard } from "@/components/ProgressDashboard";
 import { ReviewPanel } from "@/components/ReviewPanel";
 import { ShadowingPanel } from "@/components/ShadowingPanel";
 import { deleteSession, listMessages, listSessions, me } from "@/lib/api";
 import { useMentorStore } from "@/store/useMentorStore";
 
-type AppScreen = "home" | "conversations" | "new-conversation" | "review" | "chat" | "progress" | "shadowing";
+type AppScreen = "home" | "conversations" | "new-conversation" | "review" | "chat" | "progress" | "shadowing" | "profile" | "admin";
 
 export default function HomePage() {
   const {
@@ -127,6 +129,8 @@ export default function HomePage() {
                 ["review", "Revisão"],
                 ["progress", "📊 Progresso"],
                 ["shadowing", "🔁 Shadowing"],
+                ["profile", "👤 Perfil"],
+                ...(currentUser.is_admin ? [["admin", "🛡️ Admin"]] as const : []),
               ] as const).map(([key, label]) => (
                 <button
                   key={key}
@@ -186,8 +190,8 @@ export default function HomePage() {
                   ["new-conversation", "✨", "Nova conversa"],
                   ["review", "📝", "Revisão"],
                   ["progress", "📊", "Progresso"],
-                  ["shadowing", "🔁", "Shadowing"],
-                ] as const).map(([key, icon, label]) => (
+                  ["shadowing", "🔁", "Shadowing"],                ["profile", "👤", "Meu Perfil"],
+                ...(currentUser.is_admin ? [["admin", "🛡️", "Admin"]] as const : []),                ] as const).map(([key, icon, label]) => (
                   <button
                     key={key}
                     className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${screen === key
@@ -223,10 +227,13 @@ export default function HomePage() {
 
         {screen === "home" ? (
           <AppHomePanel
+            currentUser={currentUser}
             hasActiveConversation={Boolean(activeSessionId)}
             onOpenConversations={() => setScreen("conversations")}
             onOpenNewConversation={() => setScreen("new-conversation")}
             onOpenReview={() => setScreen("review")}
+            onOpenProfile={() => setScreen("profile")}
+            onOpenAdmin={() => setScreen("admin")}
           />
         ) : null}
 
@@ -318,6 +325,18 @@ export default function HomePage() {
 
         {screen === "shadowing" ? (
           <ShadowingPanel token={accessToken} sessionMessages={activeMessages} />
+        ) : null}
+
+        {screen === "profile" ? (
+          <ProfilePanel
+            token={accessToken}
+            currentUser={currentUser}
+            onUserUpdated={(updated) => setCurrentUser(updated)}
+          />
+        ) : null}
+
+        {screen === "admin" && currentUser.is_admin ? (
+          <AdminPanel token={accessToken} currentUserId={currentUser.id} />
         ) : null}
       </div>
     </main>

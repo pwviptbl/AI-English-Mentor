@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_chat_rate_limit_dep, get_current_user, get_llm_router
+from app.api.deps import get_chat_rate_limit_dep, get_current_user, get_daily_limit_dep, get_llm_router
 from app.db.models import User
 from app.db.session import get_db
 from app.schemas.chat import ChatSendRequest, ChatSendResponse
@@ -15,7 +15,7 @@ from app.services.llm_router import LLMRouter
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-@router.post("/send", response_model=ChatSendResponse, dependencies=[Depends(get_chat_rate_limit_dep())])
+@router.post("/send", response_model=ChatSendResponse, dependencies=[Depends(get_chat_rate_limit_dep()), Depends(get_daily_limit_dep())])
 async def send_chat(
     payload: ChatSendRequest,
     db: AsyncSession = Depends(get_db),
@@ -33,7 +33,7 @@ async def send_chat(
     return ChatSendResponse(**response)
 
 
-@router.post("/stream", dependencies=[Depends(get_chat_rate_limit_dep())])
+@router.post("/stream", dependencies=[Depends(get_chat_rate_limit_dep()), Depends(get_daily_limit_dep())])
 async def stream_chat(
     payload: ChatSendRequest,
     db: AsyncSession = Depends(get_db),

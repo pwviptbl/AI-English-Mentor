@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_llm_router
+from app.api.deps import get_current_user, get_daily_analysis_limit_dep, get_llm_router
 from app.core.logging import get_logger
 from app.db.models import AnalysisCache, Message, Session, User
 from app.db.session import get_db
@@ -61,7 +61,7 @@ def _analysis_to_dict(result: SentenceAnalysis) -> dict:
     }
 
 
-@router.post("/{message_id}/analysis", response_model=MessageAnalysisResponse)
+@router.post("/{message_id}/analysis", response_model=MessageAnalysisResponse, dependencies=[Depends(get_daily_analysis_limit_dep())])
 async def analyze_message(
     message_id: str,
     provider_override: str | None = None,

@@ -44,9 +44,21 @@ class Settings(BaseSettings):
     chat_timeout_seconds: int = 12
     analysis_timeout_seconds: int = 8
 
+    # Conta admin padrão criada na inicialização do banco
+    admin_email: str = "admin@aienglishmentor.com"
+    admin_password: str = "ChangeMe123!"
+
     rate_limit_auth: int = 12
     rate_limit_chat: int = 30
     rate_limit_window_seconds: int = 60
+
+    # Limite diário de mensagens de chat por usuário (conta as chamadas /chat/send e /chat/stream)
+    # Cada envio = 2 chamadas LLM (correção + resposta do assistente)
+    daily_message_limit: int = 50
+
+    # Limite diário de análises por usuário (/messages/{id}/analysis)
+    # Análises com cache não custam tokens, mas o limite protege contra abuso
+    daily_analysis_limit: int = 30
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
