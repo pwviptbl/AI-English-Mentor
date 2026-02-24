@@ -129,8 +129,8 @@ def _make_daily_dep(key_prefix: str, limit_type: Literal["chat", "analysis"], la
             raise HTTPException(
                 status_code=429,
                 detail=(
-                    f"Daily {label} limit reached ({used}/{limit}) for your '{current_user.tier}' plan. "
-                    "Your quota resets 24 h after your first request today."
+                    f"Limite diário de {label} atingido ({used}/{limit}) para o seu plano '{current_user.tier}'. "
+                    "Sua cota será reiniciada 24 h após sua primeira solicitação de hoje."
                 ),
             )
     return dependency

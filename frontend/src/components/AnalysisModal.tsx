@@ -8,6 +8,7 @@ type Props = {
   open: boolean;
   analysis: AnalysisResponse | null;
   loading: boolean;
+  error?: string | null;
   onClose: () => void;
   onAddToken: (token: TokenInfo, sentence: string) => Promise<void>;
   onLookupToken?: (word: string) => Promise<TokenInfo>;
@@ -32,7 +33,7 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function AnalysisModal({ open, analysis, loading, onClose, onAddToken, onLookupToken }: Props) {
+export function AnalysisModal({ open, analysis, loading, error, onClose, onAddToken, onLookupToken }: Props) {
   const [selected, setSelected] = useState<SelectedToken | null>(null);
   const [adding, setAdding] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -175,7 +176,17 @@ export function AnalysisModal({ open, analysis, loading, onClose, onAddToken, on
           </button>
         </div>
 
-        {loading ? <p className="mt-5">Analyzing...</p> : null}
+        {loading ? <p className="mt-5 text-sm text-ink/60">Analisando...</p> : null}
+
+        {!loading && error && (
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-4">
+            <span className="text-2xl leading-none">📊</span>
+            <div>
+              <p className="font-semibold text-orange-800 text-sm">Limite de análise atingido</p>
+              <p className="mt-1 text-xs text-orange-700 leading-relaxed">{error}</p>
+            </div>
+          </div>
+        )}
 
         {!loading && analysis ? (
           <div className="mt-4 space-y-4">

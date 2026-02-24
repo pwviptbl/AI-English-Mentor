@@ -72,7 +72,7 @@ class ChatService:
             },
         )
         self.db.add(user_message)
-        await self.db.flush()
+        await self.db.commit()  # persiste user_message antes de chamar a IA
 
         history_with_new = history + [{"role": "user", "content": correction.corrected_text}]
 
@@ -159,7 +159,7 @@ class ChatService:
             },
         )
         self.db.add(user_message)
-        await self.db.flush()
+        await self.db.commit()  # persiste user_message antes de chamar a IA
 
         # 2. Envia evento de correção imediatamente
         correction_event = {

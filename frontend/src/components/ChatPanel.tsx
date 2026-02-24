@@ -49,6 +49,23 @@ function CategoryBadges({ categories }: { categories: string[] }) {
   );
 }
 
+function friendlyError(raw: string): { icon: string; title: string; detail: string } {
+  const r = raw.toLowerCase();
+  if (r.includes("429") || r.includes("quota") || r.includes("rate"))
+    return { icon: "⏳", title: "Limite de requisições atingido", detail: "Sua cota será redefinida 24 horas após sua primeira mensagem de hoje." };
+  if (r.includes("403") || r.includes("pending activation"))
+    return { icon: "🔒", title: "Conta não ativada", detail: "Sua conta aguarda ativação pelo administrador." };
+  if (r.includes("401") || r.includes("sessão expirada") || r.includes("expirada"))
+    return { icon: "🔐", title: "Sessão expirada", detail: "Faça login novamente para continuar." };
+  if (r.includes("limit") || r.includes("limite diario") || r.includes("daily"))
+    return { icon: "📊", title: "Limite diário atingido", detail: "Você atingiu o limite de mensagens do seu plano hoje." };
+  if (r.includes("network") || r.includes("conectar") || r.includes("backend"))
+    return { icon: "📵", title: "Sem conexão", detail: "Não foi possível conectar ao servidor. Verifique sua conexão." };
+  if (r.includes("500") || r.includes("server error"))
+    return { icon: "⚠️", title: "Erro interno", detail: "Ocorreu um erro no servidor. Tente novamente em instantes." };
+  return { icon: "⚠️", title: "Algo deu errado", detail: raw };
+}
+
 export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,6 +78,7 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisResponse | null>(null);
   const [analysisMessageId, setAnalysisMessageId] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const [speechRate, setSpeechRate] = useState(0.8); // Velocidade da fala (0.5 = lento, 1.0 = normal, 1.5 = rápido)
 
@@ -147,14 +165,14 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
     if (analysisLoading) return;
     setAnalysisMessageId(messageId);
     setAnalysisData(null);
+    setAnalysisError(null);
     setAnalysisOpen(true);
     setAnalysisLoading(true);
     try {
       const data = await analyzeMessage(token, messageId);
       setAnalysisData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis failed");
-      setAnalysisOpen(false);
+      setAnalysisError(err instanceof Error ? err.message : "Analysis failed");
     } finally {
       setAnalysisLoading(false);
     }
@@ -263,7 +281,26 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
       </div>
 
       {/* Erros */}
-      {error && <p className="px-4 py-1 text-sm text-red-600">{error}</p>}
+      {error && (() => {
+        const { icon, title, detail } = friendlyError(error);
+        return (
+          <div className="mx-3 mb-2 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+            <span className="text-lg leading-none mt-0.5">{icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-red-700">{title}</p>
+              <p className="text-xs text-red-500 mt-0.5">{detail}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-600 text-lg leading-none flex-shrink-0"
+              aria-label="Fechar erro"
+            >
+              ×
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Formulário de input */}
       <form
@@ -336,7 +373,8 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
         open={analysisOpen}
         analysis={analysisData}
         loading={analysisLoading}
-        onClose={() => setAnalysisOpen(false)}
+        error={analysisError}
+        onClose={() => { setAnalysisOpen(false); setAnalysisError(null); }}
         onAddToken={handleAddToken}
         onLookupToken={handleLookup}
       />
