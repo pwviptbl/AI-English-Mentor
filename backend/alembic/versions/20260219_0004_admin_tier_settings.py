@@ -17,32 +17,44 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # -- novos campos no users --
-    op.add_column(
-        "users",
-        sa.Column("tier", sa.String(length=16), nullable=False, server_default="free"),
-    )
-    op.add_column(
-        "users",
-        sa.Column("is_admin", sa.Boolean(), nullable=False, server_default="false"),
-    )
-    op.create_index(op.f("ix_users_tier"), "users", ["tier"], unique=False)
-    op.create_index(op.f("ix_users_is_admin"), "users", ["is_admin"], unique=False)
+    conn = op.get_bind()
 
-    # -- tabela de limites por tier --
-    op.create_table(
-        "tier_limits",
-        sa.Column("tier", sa.String(length=16), primary_key=True),
-        sa.Column("daily_chat_limit", sa.Integer(), nullable=False, server_default="20"),
-        sa.Column("daily_analysis_limit", sa.Integer(), nullable=False, server_default="10"),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            nullable=False,
-            server_default=sa.text("now()"),
-        ),
-        sa.PrimaryKeyConstraint("tier"),
-    )
+    # -- novos campos no users (IF NOT EXISTS) --
+    result = conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name='users' AND column_name='tier'"
+    ))
+    if not result.scalar():
+        op.add_column("users", sa.Column("tier", sa.String(length=16), nullable=False, server_default="free"))
+        op.create_index(op.f("ix_users_tier"), "users", ["tier"], unique=False)
+
+    result = conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name='users' AND column_name='is_admin'"
+    ))
+    if not result.scalar():
+        op.add_column("users", sa.Column("is_admin", sa.Boolean(), nullable=False, server_default="false"))
+        op.create_index(op.f("ix_users_is_admin"), "users", ["is_admin"], unique=False)
+
+    # -- tabela de limites por tier (IF NOT EXISTS) --
+    result = conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.tables "
+        "WHERE table_schema='public' AND table_name='tier_limits'"
+    ))
+    if not result.scalar():
+        op.create_table(
+            "tier_limits",
+            sa.Column("tier", sa.String(length=16), primary_key=True),
+            sa.Column("daily_chat_limit", sa.Integer(), nullable=False, server_default="20"),
+            sa.Column("daily_analysis_limit", sa.Integer(), nullable=False, server_default="10"),
+            sa.Column(
+                "updated_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+                server_default=sa.text("now()"),
+            ),
+            sa.PrimaryKeyConstraint("tier"),
+        )
 
     # -- seed das duas linhas padrão --
     op.execute(

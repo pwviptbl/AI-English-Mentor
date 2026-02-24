@@ -17,19 +17,25 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "users",
-        sa.Column(
-            "is_active",
-            sa.Boolean(),
-            nullable=False,
-            server_default="true",   # usuários já existentes ficam ativos
-        ),
-    )
-    op.create_index(op.f("ix_users_is_active"), "users", ["is_active"], unique=False)
+    conn = op.get_bind()
 
-    # Após criar a coluna, garante que todos os existentes ficam ativos
-    # (server_default já cobre, mas tornamos explícito)
+    result = conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name='users' AND column_name='is_active'"
+    ))
+    if not result.scalar():
+        op.add_column(
+            "users",
+            sa.Column(
+                "is_active",
+                sa.Boolean(),
+                nullable=False,
+                server_default="true",
+            ),
+        )
+        op.create_index(op.f("ix_users_is_active"), "users", ["is_active"], unique=False)
+
+    # Garante que todos os existentes fiquem ativos
     op.execute("UPDATE users SET is_active = true WHERE is_active IS NULL")
 
 

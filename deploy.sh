@@ -60,8 +60,11 @@ USERS_EXISTS="${USERS_EXISTS//[[:space:]]/}"
 ALEMBIC_ROWS="${ALEMBIC_ROWS//[[:space:]]/}"
 
 if [ "${USERS_EXISTS:-0}" -gt "0" ] && [ "${ALEMBIC_ROWS:-0}" -eq "0" ]; then
-    echo "  ⚠️  Banco legado detectado (sem histórico Alembic) — registrando estado atual (stamp head)..."
-    docker compose run --rm backend alembic stamp head
+    echo "  ⚠️  Banco legado detectado (sem histórico Alembic)."
+    echo "      Registrando schema base (0001-0003) e rodando migrações novas..."
+    # Stamp até a última migration que faz parte do schema original (antes de tier_limits/is_active).
+    # As migrations 0004 e 0005 rodarão de verdade abaixo (são idempotentes).
+    docker compose run --rm backend alembic stamp 20260219_0003
 fi
 
 docker compose run --rm backend alembic upgrade head
