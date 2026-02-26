@@ -14,6 +14,7 @@ export function ReviewPanel({ token }: Props) {
   const [stats, setStats] = useState<ReviewStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showAnswer, setShowAnswer] = useState(false);
 
   async function reload() {
     setLoading(true);
@@ -35,6 +36,7 @@ export function ReviewPanel({ token }: Props) {
     setBusy(true);
     try {
       await reviewFlashcard(token, cards[0].id, rating);
+      setShowAnswer(false);
       await reload();
     } finally {
       setBusy(false);
@@ -45,7 +47,7 @@ export function ReviewPanel({ token }: Props) {
 
   return (
     <section className="rounded-2xl border border-emerald-900/20 bg-panel p-4">
-      <h2 className="text-lg font-semibold">Daily SRS Review</h2>
+      <h2 className="text-lg font-semibold">Revisão Diária SRS</h2>
 
       {stats ? (
         <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
@@ -54,35 +56,47 @@ export function ReviewPanel({ token }: Props) {
             <p className="font-semibold">{stats.total_cards}</p>
           </div>
           <div className="rounded-lg bg-white p-2">
-            <p className="text-xs text-ink/60">Due now</p>
+            <p className="text-xs text-ink/60">Pendentes</p>
             <p className="font-semibold">{stats.due_now}</p>
           </div>
           <div className="rounded-lg bg-white p-2">
-            <p className="text-xs text-ink/60">Today</p>
+            <p className="text-xs text-ink/60">Hoje</p>
             <p className="font-semibold">{stats.reviews_today}</p>
           </div>
         </div>
       ) : null}
 
-      {loading ? <p className="mt-3 text-sm">Loading review deck...</p> : null}
+      {loading ? <p className="mt-3 text-sm">Carregando cartões de revisão...</p> : null}
 
       {!loading && card ? (
         <div className="mt-4 rounded-xl border border-ember/20 bg-amber-50 p-3">
           <p className="text-xl font-semibold">{card.word}</p>
-          <p className="text-sm text-ink/70">{card.translation || "No translation"}</p>
-          <p className="mt-2 text-sm">{card.definition || "No definition"}</p>
-          <p className="mt-2 text-xs text-ink/60">Context: {card.context_sentence || "-"}</p>
 
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <button className="rounded-lg bg-red-500 px-2 py-2 text-xs font-medium text-white" onClick={() => review("again")} disabled={busy}>Again</button>
-            <button className="rounded-lg bg-orange-500 px-2 py-2 text-xs font-medium text-white" onClick={() => review("hard")} disabled={busy}>Hard</button>
-            <button className="rounded-lg bg-emerald-600 px-2 py-2 text-xs font-medium text-white" onClick={() => review("good")} disabled={busy}>Good</button>
-            <button className="rounded-lg bg-blue-600 px-2 py-2 text-xs font-medium text-white" onClick={() => review("easy")} disabled={busy}>Easy</button>
-          </div>
+          {!showAnswer ? (
+            <button
+              className="mt-4 w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+              onClick={() => setShowAnswer(true)}
+            >
+              Mostrar tradução
+            </button>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-ink/70">{card.translation || "Sem tradução"}</p>
+              <p className="mt-2 text-sm">{card.definition || "Sem definição"}</p>
+              <p className="mt-2 text-xs text-ink/60">Contexto: {card.context_sentence || "-"}</p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <button className="rounded-lg bg-red-500 px-2 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90" onClick={() => review("again")} disabled={busy}>Novamente</button>
+                <button className="rounded-lg bg-orange-500 px-2 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90" onClick={() => review("hard")} disabled={busy}>Difícil</button>
+                <button className="rounded-lg bg-emerald-500 px-2 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90" onClick={() => review("good")} disabled={busy}>Bom</button>
+                <button className="rounded-lg bg-blue-500 px-2 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90" onClick={() => review("easy")} disabled={busy}>Fácil</button>
+              </div>
+            </>
+          )}
         </div>
       ) : null}
 
-      {!loading && !card ? <p className="mt-3 text-sm text-ink/70">No cards due right now.</p> : null}
+      {!loading && !card ? <p className="mt-3 text-sm text-ink/70">Nenhum cartão para revisão no momento.</p> : null}
     </section>
   );
 }
