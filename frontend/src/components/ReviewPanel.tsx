@@ -47,7 +47,7 @@ export function ReviewPanel({ token }: Props) {
 
   return (
     <section className="rounded-2xl border border-emerald-900/20 bg-panel p-4">
-      <h2 className="text-lg font-semibold">Revisão Diária SRS</h2>
+      <h2 className="text-lg font-semibold">Revisão</h2>
 
       {stats ? (
         <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
