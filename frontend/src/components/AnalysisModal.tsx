@@ -206,9 +206,8 @@ export function AnalysisModal({ open, analysis, loading, error, onClose, onAddTo
                     <button
                       key={`word-${index}-${part}`}
                       type="button"
-                      className={`mx-[1px] rounded px-1 py-[1px] text-left transition ${
-                        isSelected ? "bg-accent text-white" : "bg-emerald-50 hover:bg-emerald-100"
-                      }`}
+                      className={`mx-[1px] rounded px-1 py-[1px] text-left transition ${isSelected ? "bg-accent text-white" : "bg-emerald-50 hover:bg-emerald-100"
+                        }`}
                       onClick={() => handleWordClick(part)}
                     >
                       {part}
@@ -226,13 +225,12 @@ export function AnalysisModal({ open, analysis, loading, error, onClose, onAddTo
             {deckFeedback ? (
               <div
                 role="status"
-                className={`rounded-xl border px-3 py-2 text-sm font-medium ${
-                  deckFeedback.type === "success"
+                className={`rounded-xl border px-3 py-2 text-sm font-medium ${deckFeedback.type === "success"
                     ? "border-emerald-300 bg-emerald-50 text-emerald-800"
                     : deckFeedback.type === "warning"
-                    ? "border-amber-300 bg-amber-50 text-amber-800"
-                    : "border-red-300 bg-red-50 text-red-800"
-                }`}
+                      ? "border-amber-300 bg-amber-50 text-amber-800"
+                      : "border-red-300 bg-red-50 text-red-800"
+                  }`}
               >
                 {deckFeedback.text}
               </div>
@@ -243,8 +241,30 @@ export function AnalysisModal({ open, analysis, loading, error, onClose, onAddTo
               {selected ? (
                 <div className="mt-2 space-y-2">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="flex items-center gap-2">
                       <p className="text-lg font-semibold">{selected.clickedWord}</p>
+                      <button
+                        title="Ouvir pronúncia"
+                        className="rounded-full p-1 text-indigo-600 transition-colors hover:bg-indigo-100 active:scale-90"
+                        onClick={() => {
+                          // Pronuncia a palavra selecionada em inglês via Web Speech API
+                          const utterance = new SpeechSynthesisUtterance(selected.clickedWord);
+                          utterance.lang = "en-US";
+                          utterance.rate = 0.85;
+                          window.speechSynthesis.cancel();
+                          window.speechSynthesis.speak(utterance);
+                        }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="h-5 w-5"
+                        >
+                          <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 0 0 1.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06ZM18.584 5.106a.75.75 0 0 1 1.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 0 1-1.06-1.06 8.25 8.25 0 0 0 0-11.668.75.75 0 0 1 0-1.06Z" />
+                          <path d="M15.932 7.757a.75.75 0 0 1 1.061 0 6 6 0 0 1 0 8.486.75.75 0 0 1-1.06-1.061 4.5 4.5 0 0 0 0-6.364.75.75 0 0 1 0-1.06Z" />
+                        </svg>
+                      </button>
                     </div>
                     <button
                       className="rounded-lg bg-accent px-3 py-2 text-xs font-medium text-white disabled:opacity-60"
