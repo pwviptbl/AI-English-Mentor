@@ -1,4 +1,5 @@
 import type {
+  AdminMetrics,
   AdminUser,
   AnalysisResponse,
   ChatResponse,
@@ -439,4 +440,8 @@ export async function adminUpdateTierLimits(
     method: "PUT",
     body: JSON.stringify(payload),
   }, token);
+}
+
+export async function adminGetMetrics(token: string, days = 30): Promise<AdminMetrics> {
+  return request<AdminMetrics>(`/admin/metrics?days=${days}`, {}, token);
 }

@@ -118,3 +118,38 @@ export type ProgressOverview = {
   reviews_today: number;
   daily_history: DailyReviewStat[];
 };
+
+// ── Métricas admin ───────────────────────────────────────────────────────────────────
+
+export type UserMetric = {
+  id: string;
+  full_name: string;
+  email: string;
+  tier: string;
+  is_active: boolean;
+  created_at: string;
+  total_sessions: number;
+  total_messages: number;
+  total_reviews: number;
+  last_active: string | null; // ISO 8601
+};
+
+export type DailyActivity = {
+  date: string; // YYYY-MM-DD
+  messages: number;
+  sessions: number;
+  reviews: number;
+};
+
+export type AdminMetrics = {
+  period_days: number;
+  total_users: number;
+  active_users: number;
+  inactive_users: number;
+  new_users_period: number;
+  messages_period: number;
+  sessions_period: number;
+  reviews_period: number;
+  daily_activity: DailyActivity[];
+  user_metrics: UserMetric[];
+};

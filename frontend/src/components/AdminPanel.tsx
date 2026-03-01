@@ -9,19 +9,20 @@ import {
   adminUpdateUser,
 } from "@/lib/api";
 import type { AdminUser, TierLimits } from "@/lib/types";
+import { AdminMetricsPanel } from "./AdminMetricsPanel";
 
 type Props = {
   token: string;
   currentUserId: string;
 };
 
-type Tab = "users" | "limits";
+type Tab = "users" | "limits" | "metrics";
 
 const TIER_OPTIONS = ["free", "pro"] as const;
 
 const TIER_BADGE: Record<string, string> = {
   free: "bg-gray-100 text-gray-600 border-gray-300",
-  pro:  "bg-amber-100 text-amber-700 border-amber-400",
+  pro: "bg-amber-100 text-amber-700 border-amber-400",
 };
 
 export function AdminPanel({ token, currentUserId }: Props) {
@@ -168,16 +169,15 @@ export function AdminPanel({ token, currentUserId }: Props) {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
-        {(["users", "limits"] as const).map((t) => (
+        {(["users", "limits", "metrics"] as const).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-              tab === t ? "bg-accent text-white" : "bg-emerald-900/10 text-ink hover:bg-emerald-900/15"
-            }`}
+            className={`rounded-xl px-4 py-2 text-sm font-medium transition ${tab === t ? "bg-accent text-white" : "bg-emerald-900/10 text-ink hover:bg-emerald-900/15"
+              }`}
           >
-            {t === "users" ? "👥 Usuários" : "⚙️ Limites por Plano"}
+            {t === "users" ? "👥 Usuários" : t === "limits" ? "⚙️ Limites por Plano" : "📊 Métricas"}
           </button>
         ))}
       </div>
@@ -212,11 +212,10 @@ export function AdminPanel({ token, currentUserId }: Props) {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-block rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                            u.is_active
+                          className={`inline-block rounded-full border px-2 py-0.5 text-xs font-semibold ${u.is_active
                               ? "bg-emerald-100 text-emerald-700 border-emerald-400"
                               : "bg-red-100 text-red-600 border-red-300"
-                          }`}
+                            }`}
                         >
                           {u.is_active ? "Ativo" : "Bloqueado"}
                         </span>
@@ -226,9 +225,8 @@ export function AdminPanel({ token, currentUserId }: Props) {
                           value={u.tier}
                           disabled={updatingUser === u.id}
                           onChange={(e) => void handleChangeTier(u, e.target.value)}
-                          className={`rounded-full border px-2 py-0.5 text-xs font-semibold appearance-none cursor-pointer focus:outline-none ${
-                            TIER_BADGE[u.tier] ?? TIER_BADGE.free
-                          }`}
+                          className={`rounded-full border px-2 py-0.5 text-xs font-semibold appearance-none cursor-pointer focus:outline-none ${TIER_BADGE[u.tier] ?? TIER_BADGE.free
+                            }`}
                         >
                           {TIER_OPTIONS.map((t) => (
                             <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
@@ -237,11 +235,10 @@ export function AdminPanel({ token, currentUserId }: Props) {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-block rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                            u.is_admin
+                          className={`inline-block rounded-full border px-2 py-0.5 text-xs font-semibold ${u.is_admin
                               ? "bg-violet-100 text-violet-700 border-violet-400"
                               : "bg-gray-100 text-gray-500 border-gray-300"
-                          }`}
+                            }`}
                         >
                           {u.is_admin ? "Sim" : "Não"}
                         </span>
@@ -275,11 +272,10 @@ export function AdminPanel({ token, currentUserId }: Props) {
                               disabled={updatingUser === u.id || u.id === currentUserId}
                               onClick={() => void handleToggleAdmin(u)}
                               title={u.id === currentUserId ? "Não é possível alterar seu próprio admin" : ""}
-                              className={`rounded-lg px-2 py-1 text-xs font-medium transition disabled:opacity-40 ${
-                                u.is_admin
+                              className={`rounded-lg px-2 py-1 text-xs font-medium transition disabled:opacity-40 ${u.is_admin
                                   ? "bg-red-50 text-red-600 hover:bg-red-100"
                                   : "bg-violet-50 text-violet-700 hover:bg-violet-100"
-                              }`}
+                                }`}
                             >
                               {updatingUser === u.id ? "…" : u.is_admin ? "- Admin" : "+ Admin"}
                             </button>
@@ -287,11 +283,10 @@ export function AdminPanel({ token, currentUserId }: Props) {
                               type="button"
                               disabled={updatingUser === u.id || u.id === currentUserId}
                               onClick={() => void handleToggleActive(u)}
-                              className={`rounded-lg px-2 py-1 text-xs font-medium transition disabled:opacity-40 ${
-                                u.is_active
+                              className={`rounded-lg px-2 py-1 text-xs font-medium transition disabled:opacity-40 ${u.is_active
                                   ? "bg-orange-50 text-orange-600 hover:bg-orange-100"
                                   : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                              }`}
+                                }`}
                             >
                               {u.is_active ? "Bloquear" : "Ativar"}
                             </button>
@@ -338,9 +333,8 @@ export function AdminPanel({ token, currentUserId }: Props) {
                 >
                   <div className="flex items-center gap-2 mb-4">
                     <span
-                      className={`rounded-full border px-3 py-0.5 text-xs font-semibold ${
-                        TIER_BADGE[lim.tier] ?? TIER_BADGE.free
-                      }`}
+                      className={`rounded-full border px-3 py-0.5 text-xs font-semibold ${TIER_BADGE[lim.tier] ?? TIER_BADGE.free
+                        }`}
                     >
                       {lim.tier.charAt(0).toUpperCase() + lim.tier.slice(1)}
                     </span>
@@ -399,6 +393,9 @@ export function AdminPanel({ token, currentUserId }: Props) {
           )}
         </div>
       )}
+
+      {/* Tab: Métricas */}
+      {tab === "metrics" && <AdminMetricsPanel token={token} />}
     </section>
   );
 }
