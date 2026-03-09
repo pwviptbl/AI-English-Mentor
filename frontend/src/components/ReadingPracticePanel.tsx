@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 
@@ -83,7 +83,7 @@ export function ReadingPracticePanel({ token }: Props) {
         resultRecorded: false,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao gerar atividade de interpretacao.");
+      setError(err instanceof Error ? err.message : "Falha ao gerar atividade de interpretação.");
     } finally {
       setLoading(false);
     }
@@ -148,18 +148,13 @@ export function ReadingPracticePanel({ token }: Props) {
   return (
     <>
       <section className="rounded-3xl border border-sky-900/20 bg-panel p-5 shadow-[0_20px_45px_rgba(0,0,0,0.08)]">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2">
           <div>
-            <h2 className="text-xl font-semibold text-ink">Interpretacao de texto</h2>
+            <h2 className="text-xl font-semibold text-ink">Interpretação de texto</h2>
             <p className="text-sm text-ink/65">
-              Gere um texto novo com IA, escolha o tema e responda questoes de interpretacao logo em seguida.
+              Gere um texto novo com IA, escolha o tema e responda questões de interpretação logo em seguida.
             </p>
           </div>
-          {activity ? (
-            <div className="rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-700">
-              IA: {activity.provider_used} · Modelo: {activity.model_used}
-            </div>
-          ) : null}
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
@@ -184,7 +179,7 @@ export function ReadingPracticePanel({ token }: Props) {
             </div>
 
             <label className="block">
-              <span className="text-sm font-semibold text-ink">Ou escreva um tema especifico</span>
+              <span className="text-sm font-semibold text-ink">Ou escreva um tema específico</span>
               <input
                 value={customTheme}
                 onChange={(event) => setReadingPractice({ customTheme: event.target.value })}
@@ -194,7 +189,7 @@ export function ReadingPracticePanel({ token }: Props) {
             </label>
 
             <div>
-              <p className="text-sm font-semibold text-ink">Nivel do texto</p>
+              <p className="text-sm font-semibold text-ink">Nível do texto</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {CEFR_LEVELS.map((level) => (
                   <button
@@ -210,7 +205,7 @@ export function ReadingPracticePanel({ token }: Props) {
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-ink">Idioma das questoes</p>
+              <p className="text-sm font-semibold text-ink">Idioma das questões</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {QUESTION_LANGUAGES.map((language) => (
                   <button
@@ -228,7 +223,7 @@ export function ReadingPracticePanel({ token }: Props) {
             <div className="rounded-2xl bg-ink px-4 py-4 text-white">
               <p className="text-xs uppercase tracking-[0.18em] text-white/60">Tema atual</p>
               <p className="mt-2 text-lg font-semibold">{finalTheme}</p>
-              <p className="mt-1 text-sm text-white/70">A IA vai criar um texto original e 4 perguntas de interpretacao em {questionLanguageLabel}.</p>
+              <p className="mt-1 text-sm text-white/70">A IA vai criar um texto original e 4 perguntas de interpretação em {questionLanguageLabel}.</p>
             </div>
 
             <button
@@ -237,7 +232,7 @@ export function ReadingPracticePanel({ token }: Props) {
               disabled={loading || !finalTheme.trim()}
               className="rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Gerando atividade..." : activity ? "Gerar novo texto e questoes" : "Gerar texto e questoes"}
+              {loading ? "Gerando atividade..." : activity ? "Gerar novo texto e questões" : "Gerar texto e questões"}
             </button>
 
             {activity ? (
@@ -261,7 +256,7 @@ export function ReadingPracticePanel({ token }: Props) {
                     <p className="text-xs uppercase tracking-[0.18em] text-ink/40">Leitura</p>
                     <h3 className="mt-1 text-2xl font-semibold text-ink">{activity.title}</h3>
                     <p className="mt-1 text-sm text-ink/55">Tema: {activity.theme}</p>
-                    <p className="mt-1 text-sm text-ink/55">Questoes em: {activityQuestionLanguageLabel}</p>
+                    <p className="mt-1 text-sm text-ink/55">Questões em: {activityQuestionLanguageLabel}</p>
                   </div>
                   <button
                     type="button"
@@ -280,7 +275,7 @@ export function ReadingPracticePanel({ token }: Props) {
                   <div className="space-y-4 rounded-2xl border border-emerald-900/10 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/45">
-                        Questao {currentQuestionIndex + 1} de {activity.questions.length}
+                        Questão {currentQuestionIndex + 1} de {activity.questions.length}
                       </p>
                       <div className="flex gap-1.5">
                         {activity.questions.map((_, index) => {
@@ -292,7 +287,7 @@ export function ReadingPracticePanel({ token }: Props) {
                               type="button"
                               onClick={() => setReadingPractice({ currentQuestionIndex: index })}
                               className={`h-2.5 w-2.5 rounded-full transition ${active ? "bg-sky-700" : answered ? "bg-emerald-500" : "bg-emerald-900/15"}`}
-                              aria-label={`Ir para questao ${index + 1}`}
+                              aria-label={`Ir para questão ${index + 1}`}
                             />
                           );
                         })}
@@ -353,7 +348,7 @@ export function ReadingPracticePanel({ token }: Props) {
                         disabled={currentQuestionIndex === activity.questions.length - 1}
                         className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Proxima
+                        Próxima
                       </button>
                     </div>
                   </div>
@@ -402,3 +397,4 @@ export function ReadingPracticePanel({ token }: Props) {
     </>
   );
 }
+

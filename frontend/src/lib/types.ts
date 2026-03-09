@@ -175,6 +175,8 @@ export type UserMetric = {
   total_sessions: number;
   total_messages: number;
   total_reviews: number;
+  total_reading_activities: number;
+  total_reading_questions: number;
   last_active: string | null;
 };
 
@@ -183,6 +185,7 @@ export type DailyActivity = {
   messages: number;
   sessions: number;
   reviews: number;
+  reading_activities: number;
 };
 
 export type AdminMetrics = {
@@ -194,8 +197,12 @@ export type AdminMetrics = {
   messages_period: number;
   sessions_period: number;
   reviews_period: number;
+  reading_activities_period: number;
+  reading_questions_answered_period: number;
+  reading_correct_answers_period: number;
   daily_activity: DailyActivity[];
   user_metrics: UserMetric[];
 };
+
 
 
