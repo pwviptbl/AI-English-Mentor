@@ -14,6 +14,7 @@ const defaultReadingPracticeState: ReadingPracticeState = {
   answers: {},
   currentQuestionIndex: 0,
   submitted: false,
+  resultRecorded: false,
 };
 
 type MentorState = {

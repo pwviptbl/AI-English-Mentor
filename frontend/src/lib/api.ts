@@ -8,6 +8,7 @@
   Message,
   ProgressOverview,
   ReadingActivity,
+  ReadingProgressOverview,
   ReviewStats,
   Session,
   TierLimits,
@@ -346,6 +347,20 @@ export async function analyzeText(token: string, text: string): Promise<Analysis
   }, token);
 }
 
+export async function saveReadingAttempt(
+  token: string,
+  payload: { title: string; theme: string; question_language: "en" | "pt"; total_questions: number; correct_answers: number },
+): Promise<{ id: string }> {
+  return request<{ id: string }>("/reading/attempts", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, token);
+}
+
+export async function readingProgressOverview(token: string, days = 14): Promise<ReadingProgressOverview> {
+  return request<ReadingProgressOverview>(`/reading/progress?days=${days}`, {}, token);
+}
+
 export async function lookupDictionaryWord(token: string, word: string): Promise<{
   token: string;
   lemma: string | null;
@@ -441,6 +456,9 @@ export async function adminUpdateTierLimits(
 export async function adminGetMetrics(token: string, days = 30): Promise<AdminMetrics> {
   return request<AdminMetrics>(`/admin/metrics?days=${days}`, {}, token);
 }
+
+
+
 
 
 

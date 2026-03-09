@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 
 import { AnalysisModal } from "@/components/AnalysisModal";
-import { addFlashcard, analyzeText, generateReadingActivity, lookupDictionaryWord } from "@/lib/api";
-import type { AnalysisResponse, ReadingActivity, TokenInfo } from "@/lib/types";
+import { addFlashcard, analyzeText, generateReadingActivity, lookupDictionaryWord, saveReadingAttempt } from "@/lib/api";
+import type { AnalysisResponse, TokenInfo } from "@/lib/types";
 import { useMentorStore } from "@/store/useMentorStore";
 
 const THEME_OPTIONS = [
@@ -29,10 +29,7 @@ type Props = {
 };
 
 export function ReadingPracticePanel({ token }: Props) {
-  const {
-    readingPractice,
-    setReadingPractice,
-  } = useMentorStore();
+  const { readingPractice, setReadingPractice } = useMentorStore();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,14 +47,20 @@ export function ReadingPracticePanel({ token }: Props) {
   const answers = readingPractice.answers;
   const currentQuestionIndex = readingPractice.currentQuestionIndex;
   const submitted = readingPractice.submitted;
+  const resultRecorded = readingPractice.resultRecorded;
 
-  const finalTheme = useMemo(() => {
-    return customTheme.trim() || selectedTheme;
-  }, [customTheme, selectedTheme]);
-
+  const finalTheme = useMemo(() => customTheme.trim() || selectedTheme, [customTheme, selectedTheme]);
   const answeredCount = Object.keys(answers).length;
   const questionLanguageLabel = questionLanguage === "pt" ? "Português" : "English";
   const activityQuestionLanguageLabel = activity?.question_language === "pt" ? "Português" : "English";
+
+  const score = activity
+    ? activity.questions.reduce((total, question, index) => {
+        return total + (answers[index] === question.correct_option ? 1 : 0);
+      }, 0)
+    : 0;
+
+  const currentQuestion = activity?.questions[currentQuestionIndex] ?? null;
 
   async function handleGenerate() {
     setLoading(true);
@@ -77,9 +80,33 @@ export function ReadingPracticePanel({ token }: Props) {
         answers: {},
         currentQuestionIndex: 0,
         submitted: false,
+        resultRecorded: false,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao gerar atividade de interpretacao.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSubmitAnswers() {
+    if (!activity || submitted || answeredCount !== activity.questions.length) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await saveReadingAttempt(token, {
+        title: activity.title,
+        theme: activity.theme,
+        question_language: activity.question_language,
+        total_questions: activity.questions.length,
+        correct_answers: score,
+      });
+      setReadingPractice({ submitted: true, resultRecorded: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao salvar resultado da atividade.");
     } finally {
       setLoading(false);
     }
@@ -117,14 +144,6 @@ export function ReadingPracticePanel({ token }: Props) {
   async function handleLookup(word: string): Promise<TokenInfo> {
     return lookupDictionaryWord(token, word);
   }
-
-  const score = activity
-    ? activity.questions.reduce((total, question, index) => {
-        return total + (answers[index] === question.correct_option ? 1 : 0);
-      }, 0)
-    : 0;
-
-  const currentQuestion = activity?.questions[currentQuestionIndex] ?? null;
 
   return (
     <>
@@ -297,9 +316,7 @@ export function ReadingPracticePanel({ token }: Props) {
                             type="button"
                             onClick={() => {
                               if (submitted) return;
-                              setReadingPractice({
-                                answers: { ...answers, [currentQuestionIndex]: option },
-                              });
+                              setReadingPractice({ answers: { ...answers, [currentQuestionIndex]: option } });
                             }}
                             className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${active ? "border-sky-600 bg-sky-50 text-sky-800" : "border-emerald-900/10 bg-white text-ink hover:border-sky-300"} ${showCorrect ? "border-emerald-500 bg-emerald-50 text-emerald-800" : ""} ${showWrong ? "border-red-400 bg-red-50 text-red-700" : ""}`}
                           >
@@ -312,9 +329,7 @@ export function ReadingPracticePanel({ token }: Props) {
                     {submitted ? (
                       <div className={`rounded-xl px-3 py-2 text-sm ${answers[currentQuestionIndex] === currentQuestion.correct_option ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
                         <p className="font-semibold">
-                          {answers[currentQuestionIndex] === currentQuestion.correct_option
-                            ? "Resposta correta"
-                            : `Resposta correta: ${currentQuestion.correct_option}`}
+                          {answers[currentQuestionIndex] === currentQuestion.correct_option ? "Resposta correta" : `Resposta correta: ${currentQuestion.correct_option}`}
                         </p>
                         <p className="mt-1">{currentQuestion.explanation}</p>
                       </div>
@@ -347,16 +362,17 @@ export function ReadingPracticePanel({ token }: Props) {
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setReadingPractice({ submitted: true })}
-                    disabled={submitted || answeredCount !== activity.questions.length}
+                    onClick={handleSubmitAnswers}
+                    disabled={loading || submitted || answeredCount !== activity.questions.length}
                     className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Corrigir respostas
+                    {loading ? "Salvando resultado..." : "Corrigir respostas"}
                   </button>
                   {submitted ? (
-                    <p className="text-sm font-semibold text-ink">
-                      Resultado: {score}/{activity.questions.length}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-ink">Resultado: {score}/{activity.questions.length}</p>
+                      <p className="text-xs text-ink/55">{resultRecorded ? "Resultado salvo no progresso." : "Resultado corrigido localmente."}</p>
+                    </div>
                   ) : (
                     <p className="text-sm text-ink/60">Responda todas as perguntas para corrigir.</p>
                   )}

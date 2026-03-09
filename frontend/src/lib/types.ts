@@ -94,6 +94,7 @@ export type ReadingPracticeState = {
   answers: Record<number, string>;
   currentQuestionIndex: number;
   submitted: boolean;
+  resultRecorded: boolean;
 };
 
 export type TokenInfo = {
@@ -145,6 +146,21 @@ export type ProgressOverview = {
   accuracy_rate: number;
   reviews_today: number;
   daily_history: DailyReviewStat[];
+};
+
+export type DailyReadingStat = {
+  date: string;
+  count: number;
+  accuracy: number;
+};
+
+export type ReadingProgressOverview = {
+  completed_activities: number;
+  total_questions_answered: number;
+  correct_answers: number;
+  accuracy_rate: number;
+  activities_today: number;
+  daily_history: DailyReadingStat[];
 };
 
 export type UserMetric = {
