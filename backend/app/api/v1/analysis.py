@@ -6,7 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_daily_analysis_limit_dep, get_llm_router
+from app.api.deps import (
+    get_chat_rate_limit_dep,
+    get_current_user,
+    get_daily_analysis_limit_dep,
+    get_daily_limit_dep,
+    get_llm_router,
+)
 from app.core.logging import get_logger
 from app.db.models import AnalysisCache, Message, Session, User
 from app.db.session import get_db
@@ -173,7 +179,11 @@ async def analyze_message(
     return _response_from_result(result)
 
 
-@text_router.post("/text", response_model=MessageAnalysisResponse, dependencies=[Depends(get_daily_analysis_limit_dep())])
+@text_router.post(
+    "/text",
+    response_model=MessageAnalysisResponse,
+    dependencies=[Depends(get_chat_rate_limit_dep()), Depends(get_daily_limit_dep())],
+)
 async def analyze_text(
     payload: TextAnalysisRequest,
     provider_override: str | None = None,
