@@ -1,9 +1,20 @@
-"use client";
+﻿"use client";
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import type { Message, Session, User } from "@/lib/types";
+import type { Message, ReadingPracticeState, Session, User } from "@/lib/types";
+
+const defaultReadingPracticeState: ReadingPracticeState = {
+  selectedTheme: "Technology",
+  customTheme: "",
+  cefrLevel: "B1",
+  questionLanguage: "en",
+  activity: null,
+  answers: {},
+  currentQuestionIndex: 0,
+  submitted: false,
+};
 
 type MentorState = {
   accessToken: string | null;
@@ -12,6 +23,8 @@ type MentorState = {
   sessions: Session[];
   activeSessionId: string | null;
   messagesBySession: Record<string, Message[]>;
+  readingPractice: ReadingPracticeState;
+  readingPracticeUserId: string | null;
   setAuth: (accessToken: string, refreshToken: string) => void;
   setCurrentUser: (user: User | null) => void;
   logout: () => void;
@@ -20,6 +33,8 @@ type MentorState = {
   setMessages: (sessionId: string, messages: Message[]) => void;
   appendMessages: (sessionId: string, messages: Message[]) => void;
   removeSession: (sessionId: string) => void;
+  setReadingPractice: (payload: Partial<ReadingPracticeState>) => void;
+  resetReadingPractice: () => void;
 };
 
 export const useMentorStore = create<MentorState>()(
@@ -31,8 +46,28 @@ export const useMentorStore = create<MentorState>()(
       sessions: [],
       activeSessionId: null,
       messagesBySession: {},
+      readingPractice: defaultReadingPracticeState,
+      readingPracticeUserId: null,
       setAuth: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
-      setCurrentUser: (currentUser) => set({ currentUser }),
+      setCurrentUser: (currentUser) =>
+        set((state) => {
+          if (!currentUser) {
+            return { currentUser: null };
+          }
+
+          if (state.readingPracticeUserId && state.readingPracticeUserId !== currentUser.id) {
+            return {
+              currentUser,
+              readingPractice: defaultReadingPracticeState,
+              readingPracticeUserId: currentUser.id,
+            };
+          }
+
+          return {
+            currentUser,
+            readingPracticeUserId: currentUser.id,
+          };
+        }),
       logout: () =>
         set({
           accessToken: null,
@@ -67,6 +102,19 @@ export const useMentorStore = create<MentorState>()(
             messagesBySession: rest,
           };
         }),
+      setReadingPractice: (payload) =>
+        set((state) => ({
+          readingPractice: {
+            ...state.readingPractice,
+            ...payload,
+          },
+          readingPracticeUserId: state.currentUser?.id ?? state.readingPracticeUserId,
+        })),
+      resetReadingPractice: () =>
+        set((state) => ({
+          readingPractice: defaultReadingPracticeState,
+          readingPracticeUserId: state.currentUser?.id ?? null,
+        })),
     }),
     {
       name: "ai-english-mentor-store",
@@ -75,6 +123,8 @@ export const useMentorStore = create<MentorState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         currentUser: state.currentUser,
+        readingPractice: state.readingPractice,
+        readingPracticeUserId: state.readingPracticeUserId,
       }),
     },
   ),

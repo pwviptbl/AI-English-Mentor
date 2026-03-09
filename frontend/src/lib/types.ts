@@ -85,6 +85,17 @@ export type ReadingActivity = {
   model_used: string;
 };
 
+export type ReadingPracticeState = {
+  selectedTheme: string;
+  customTheme: string;
+  cefrLevel: string;
+  questionLanguage: "en" | "pt";
+  activity: ReadingActivity | null;
+  answers: Record<number, string>;
+  currentQuestionIndex: number;
+  submitted: boolean;
+};
+
 export type TokenInfo = {
   token: string;
   lemma: string | null;

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { AnalysisModal } from "@/components/AnalysisModal";
 import { addFlashcard, analyzeText, generateReadingActivity, lookupDictionaryWord } from "@/lib/api";
 import type { AnalysisResponse, ReadingActivity, TokenInfo } from "@/lib/types";
+import { useMentorStore } from "@/store/useMentorStore";
 
 const THEME_OPTIONS = [
   "Technology",
@@ -28,14 +29,11 @@ type Props = {
 };
 
 export function ReadingPracticePanel({ token }: Props) {
-  const [selectedTheme, setSelectedTheme] = useState<string>(THEME_OPTIONS[0]);
-  const [customTheme, setCustomTheme] = useState("");
-  const [cefrLevel, setCefrLevel] = useState<string>("B1");
-  const [questionLanguage, setQuestionLanguage] = useState<"en" | "pt">("en");
-  const [activity, setActivity] = useState<ReadingActivity | null>(null);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [submitted, setSubmitted] = useState(false);
+  const {
+    readingPractice,
+    setReadingPractice,
+  } = useMentorStore();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +41,15 @@ export function ReadingPracticePanel({ token }: Props) {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisResponse | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  const selectedTheme = readingPractice.selectedTheme;
+  const customTheme = readingPractice.customTheme;
+  const cefrLevel = readingPractice.cefrLevel;
+  const questionLanguage = readingPractice.questionLanguage;
+  const activity = readingPractice.activity;
+  const answers = readingPractice.answers;
+  const currentQuestionIndex = readingPractice.currentQuestionIndex;
+  const submitted = readingPractice.submitted;
 
   const finalTheme = useMemo(() => {
     return customTheme.trim() || selectedTheme;
@@ -55,9 +62,6 @@ export function ReadingPracticePanel({ token }: Props) {
   async function handleGenerate() {
     setLoading(true);
     setError(null);
-    setSubmitted(false);
-    setAnswers({});
-    setCurrentQuestionIndex(0);
     setAnalysisOpen(false);
     setAnalysisData(null);
     setAnalysisError(null);
@@ -68,7 +72,12 @@ export function ReadingPracticePanel({ token }: Props) {
         cefr_level: cefrLevel,
         question_language: questionLanguage,
       });
-      setActivity(result);
+      setReadingPractice({
+        activity: result,
+        answers: {},
+        currentQuestionIndex: 0,
+        submitted: false,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao gerar atividade de interpretacao.");
     } finally {
@@ -145,7 +154,7 @@ export function ReadingPracticePanel({ token }: Props) {
                     <button
                       key={theme}
                       type="button"
-                      onClick={() => setSelectedTheme(theme)}
+                      onClick={() => setReadingPractice({ selectedTheme: theme })}
                       className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${active ? "border-sky-700 bg-sky-700 text-white" : "border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-400"}`}
                     >
                       {theme}
@@ -159,7 +168,7 @@ export function ReadingPracticePanel({ token }: Props) {
               <span className="text-sm font-semibold text-ink">Ou escreva um tema especifico</span>
               <input
                 value={customTheme}
-                onChange={(event) => setCustomTheme(event.target.value)}
+                onChange={(event) => setReadingPractice({ customTheme: event.target.value })}
                 placeholder="Ex: cybersecurity in small businesses"
                 className="mt-2 w-full rounded-xl border border-emerald-900/20 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500"
               />
@@ -172,7 +181,7 @@ export function ReadingPracticePanel({ token }: Props) {
                   <button
                     key={level}
                     type="button"
-                    onClick={() => setCefrLevel(level)}
+                    onClick={() => setReadingPractice({ cefrLevel: level })}
                     className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${cefrLevel === level ? "border-amber-500 bg-amber-500 text-white" : "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400"}`}
                   >
                     {level}
@@ -188,7 +197,7 @@ export function ReadingPracticePanel({ token }: Props) {
                   <button
                     key={language.value}
                     type="button"
-                    onClick={() => setQuestionLanguage(language.value)}
+                    onClick={() => setReadingPractice({ questionLanguage: language.value })}
                     className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${questionLanguage === language.value ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400"}`}
                   >
                     {language.label}
@@ -209,8 +218,14 @@ export function ReadingPracticePanel({ token }: Props) {
               disabled={loading || !finalTheme.trim()}
               className="rounded-xl bg-sky-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Gerando atividade..." : "Gerar texto e questoes"}
+              {loading ? "Gerando atividade..." : activity ? "Gerar novo texto e questoes" : "Gerar texto e questoes"}
             </button>
+
+            {activity ? (
+              <p className="text-xs text-ink/55">
+                Esta atividade fica salva para voce continuar depois ate gerar uma nova.
+              </p>
+            ) : null}
 
             {error ? <p className="text-sm text-red-700">{error}</p> : null}
           </div>
@@ -256,7 +271,7 @@ export function ReadingPracticePanel({ token }: Props) {
                             <button
                               key={`step-${index}`}
                               type="button"
-                              onClick={() => setCurrentQuestionIndex(index)}
+                              onClick={() => setReadingPractice({ currentQuestionIndex: index })}
                               className={`h-2.5 w-2.5 rounded-full transition ${active ? "bg-sky-700" : answered ? "bg-emerald-500" : "bg-emerald-900/15"}`}
                               aria-label={`Ir para questao ${index + 1}`}
                             />
@@ -282,7 +297,9 @@ export function ReadingPracticePanel({ token }: Props) {
                             type="button"
                             onClick={() => {
                               if (submitted) return;
-                              setAnswers((current) => ({ ...current, [currentQuestionIndex]: option }));
+                              setReadingPractice({
+                                answers: { ...answers, [currentQuestionIndex]: option },
+                              });
                             }}
                             className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${active ? "border-sky-600 bg-sky-50 text-sky-800" : "border-emerald-900/10 bg-white text-ink hover:border-sky-300"} ${showCorrect ? "border-emerald-500 bg-emerald-50 text-emerald-800" : ""} ${showWrong ? "border-red-400 bg-red-50 text-red-700" : ""}`}
                           >
@@ -306,7 +323,7 @@ export function ReadingPracticePanel({ token }: Props) {
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-emerald-900/10 pt-3">
                       <button
                         type="button"
-                        onClick={() => setCurrentQuestionIndex((current) => Math.max(0, current - 1))}
+                        onClick={() => setReadingPractice({ currentQuestionIndex: Math.max(0, currentQuestionIndex - 1) })}
                         disabled={currentQuestionIndex === 0}
                         className="rounded-xl border border-emerald-900/15 px-4 py-2 text-sm font-medium text-ink disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -317,7 +334,7 @@ export function ReadingPracticePanel({ token }: Props) {
                       </p>
                       <button
                         type="button"
-                        onClick={() => setCurrentQuestionIndex((current) => Math.min(activity.questions.length - 1, current + 1))}
+                        onClick={() => setReadingPractice({ currentQuestionIndex: Math.min(activity.questions.length - 1, currentQuestionIndex + 1) })}
                         disabled={currentQuestionIndex === activity.questions.length - 1}
                         className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -330,7 +347,7 @@ export function ReadingPracticePanel({ token }: Props) {
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setSubmitted(true)}
+                    onClick={() => setReadingPractice({ submitted: true })}
                     disabled={submitted || answeredCount !== activity.questions.length}
                     className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
