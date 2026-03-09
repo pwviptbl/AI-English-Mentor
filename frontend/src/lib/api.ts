@@ -339,6 +339,13 @@ export async function analyzeMessage(token: string, messageId: string): Promise<
   }, token);
 }
 
+export async function analyzeText(token: string, text: string): Promise<AnalysisResponse> {
+  return request<AnalysisResponse>("/analysis/text", {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  }, token);
+}
+
 export async function lookupDictionaryWord(token: string, word: string): Promise<{
   token: string;
   lemma: string | null;
@@ -434,3 +441,5 @@ export async function adminUpdateTierLimits(
 export async function adminGetMetrics(token: string, days = 30): Promise<AdminMetrics> {
   return request<AdminMetrics>(`/admin/metrics?days=${days}`, {}, token);
 }
+
+
