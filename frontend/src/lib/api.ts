@@ -325,7 +325,7 @@ export async function sendChatStream(
 
 export async function generateReadingActivity(
   token: string,
-  payload: { theme: string; cefr_level?: string | null },
+  payload: { theme: string; cefr_level?: string | null; question_language?: "en" | "pt" },
 ): Promise<ReadingActivity> {
   return request<ReadingActivity>("/reading/generate", {
     method: "POST",
@@ -441,5 +441,6 @@ export async function adminUpdateTierLimits(
 export async function adminGetMetrics(token: string, days = 30): Promise<AdminMetrics> {
   return request<AdminMetrics>(`/admin/metrics?days=${days}`, {}, token);
 }
+
 
 

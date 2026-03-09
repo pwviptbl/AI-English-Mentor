@@ -72,13 +72,14 @@ export type ReadingQuestion = {
   question: string;
   options: string[];
   correct_option: string;
-  explanation_pt: string;
+  explanation: string;
 };
 
 export type ReadingActivity = {
   title: string;
   theme: string;
   passage: string;
+  question_language: "en" | "pt";
   questions: ReadingQuestion[];
   provider_used: string;
   model_used: string;

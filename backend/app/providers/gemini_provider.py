@@ -249,17 +249,21 @@ class GeminiProvider(BaseLLMProvider):
         model = settings.gemini_model_chat
         learner_name = str(context.get("learner_name") or "Learner").strip()
         cefr_level = str(context.get("cefr_level") or "B1").strip() or "B1"
+        question_language = str(context.get("question_language") or "en").strip().lower() or "en"
+        question_language_name = "Portuguese" if question_language == "pt" else "English"
         prompt = (
             "Create an English reading-comprehension activity for a Brazilian learner. "
             "Return ONLY valid JSON with keys: title, theme, passage, questions. "
             "The passage must be in English with 2 to 4 short paragraphs, appropriate for the requested CEFR level. "
-            "questions must contain exactly 4 items. Each item must have: question, options, correct_option, explanation_pt. "
-            "options must contain exactly 4 short answer choices in English. correct_option must exactly match one option. "
+            "questions must contain exactly 4 items. Each item must have: question, options, correct_option, explanation. "
+            "options must contain exactly 4 short answer choices in the selected question language. correct_option must exactly match one option. "
             "The questions should test main idea, detail, inference, and vocabulary in context. "
+            "Keep the passage in English, but write the questions, options, correct_option, and explanation in the selected question language. "
             "Do not use markdown.\n"
             f"Theme: {theme}\n"
             f"CEFR level: {cefr_level}\n"
-            f"Learner name: {learner_name}"
+            f"Learner name: {learner_name}\n"
+            f"Question language: {question_language_name}"
         )
         text = await self._generate(prompt, model, settings.chat_timeout_seconds)
         parsed = extract_json_object(text)
@@ -280,7 +284,7 @@ class GeminiProvider(BaseLLMProvider):
                     question=str(item.get("question") or "").strip(),
                     options=options,
                     correct_option=correct_option,
-                    explanation_pt=str(item.get("explanation_pt") or "").strip(),
+                    explanation=str(item.get("explanation") or "").strip(),
                 )
             )
 
@@ -292,7 +296,10 @@ class GeminiProvider(BaseLLMProvider):
                 title=str(parsed.get("title") or f"Reading about {theme}").strip(),
                 theme=str(parsed.get("theme") or theme).strip(),
                 passage=str(parsed.get("passage") or "").strip(),
+                question_language=question_language,
                 questions=questions[:4],
             ),
             model,
         )
+
+

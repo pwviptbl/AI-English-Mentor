@@ -18,6 +18,7 @@ async def generate_reading_activity(
     context = {
         "learner_name": current_user.full_name,
         "cefr_level": payload.cefr_level or "B1",
+        "question_language": payload.question_language or "en",
     }
 
     try:
@@ -37,12 +38,13 @@ async def generate_reading_activity(
         title=activity.title,
         theme=activity.theme,
         passage=activity.passage,
+        question_language=activity.question_language,
         questions=[
             ReadingQuestionResponse(
                 question=question.question,
                 options=question.options,
                 correct_option=question.correct_option,
-                explanation_pt=question.explanation_pt,
+                explanation=question.explanation,
             )
             for question in activity.questions
         ],

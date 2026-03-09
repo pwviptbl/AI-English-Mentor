@@ -18,6 +18,10 @@ const THEME_OPTIONS = [
 ];
 
 const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
+const QUESTION_LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "pt", label: "Português" },
+] as const;
 
 type Props = {
   token: string;
@@ -27,6 +31,7 @@ export function ReadingPracticePanel({ token }: Props) {
   const [selectedTheme, setSelectedTheme] = useState<string>(THEME_OPTIONS[0]);
   const [customTheme, setCustomTheme] = useState("");
   const [cefrLevel, setCefrLevel] = useState<string>("B1");
+  const [questionLanguage, setQuestionLanguage] = useState<"en" | "pt">("en");
   const [activity, setActivity] = useState<ReadingActivity | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -43,6 +48,10 @@ export function ReadingPracticePanel({ token }: Props) {
     return customTheme.trim() || selectedTheme;
   }, [customTheme, selectedTheme]);
 
+  const answeredCount = Object.keys(answers).length;
+  const questionLanguageLabel = questionLanguage === "pt" ? "Português" : "English";
+  const activityQuestionLanguageLabel = activity?.question_language === "pt" ? "Português" : "English";
+
   async function handleGenerate() {
     setLoading(true);
     setError(null);
@@ -57,6 +66,7 @@ export function ReadingPracticePanel({ token }: Props) {
       const result = await generateReadingActivity(token, {
         theme: finalTheme,
         cefr_level: cefrLevel,
+        question_language: questionLanguage,
       });
       setActivity(result);
     } catch (err) {
@@ -171,10 +181,26 @@ export function ReadingPracticePanel({ token }: Props) {
               </div>
             </div>
 
+            <div>
+              <p className="text-sm font-semibold text-ink">Idioma das questoes</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {QUESTION_LANGUAGES.map((language) => (
+                  <button
+                    key={language.value}
+                    type="button"
+                    onClick={() => setQuestionLanguage(language.value)}
+                    className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${questionLanguage === language.value ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400"}`}
+                  >
+                    {language.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="rounded-2xl bg-ink px-4 py-4 text-white">
               <p className="text-xs uppercase tracking-[0.18em] text-white/60">Tema atual</p>
               <p className="mt-2 text-lg font-semibold">{finalTheme}</p>
-              <p className="mt-1 text-sm text-white/70">A IA vai criar um texto original e 4 perguntas de interpretacao.</p>
+              <p className="mt-1 text-sm text-white/70">A IA vai criar um texto original e 4 perguntas de interpretacao em {questionLanguageLabel}.</p>
             </div>
 
             <button
@@ -201,6 +227,7 @@ export function ReadingPracticePanel({ token }: Props) {
                     <p className="text-xs uppercase tracking-[0.18em] text-ink/40">Leitura</p>
                     <h3 className="mt-1 text-2xl font-semibold text-ink">{activity.title}</h3>
                     <p className="mt-1 text-sm text-ink/55">Tema: {activity.theme}</p>
+                    <p className="mt-1 text-sm text-ink/55">Questoes em: {activityQuestionLanguageLabel}</p>
                   </div>
                   <button
                     type="button"
@@ -272,7 +299,7 @@ export function ReadingPracticePanel({ token }: Props) {
                             ? "Resposta correta"
                             : `Resposta correta: ${currentQuestion.correct_option}`}
                         </p>
-                        <p className="mt-1">{currentQuestion.explanation_pt}</p>
+                        <p className="mt-1">{currentQuestion.explanation}</p>
                       </div>
                     ) : null}
 
@@ -286,7 +313,7 @@ export function ReadingPracticePanel({ token }: Props) {
                         Anterior
                       </button>
                       <p className="text-sm text-ink/60">
-                        {Object.keys(answers).length}/{activity.questions.length} respondidas
+                        {answeredCount}/{activity.questions.length} respondidas
                       </p>
                       <button
                         type="button"
@@ -304,7 +331,7 @@ export function ReadingPracticePanel({ token }: Props) {
                   <button
                     type="button"
                     onClick={() => setSubmitted(true)}
-                    disabled={submitted || Object.keys(answers).length !== activity.questions.length}
+                    disabled={submitted || answeredCount !== activity.questions.length}
                     className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Corrigir respostas
@@ -342,4 +369,3 @@ export function ReadingPracticePanel({ token }: Props) {
     </>
   );
 }
-

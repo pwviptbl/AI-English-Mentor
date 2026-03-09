@@ -41,7 +41,7 @@ class ReadingQuestion:
     question: str
     options: list[str]
     correct_option: str
-    explanation_pt: str
+    explanation: str
 
 
 @dataclass(slots=True)
@@ -49,6 +49,7 @@ class ReadingActivity:
     title: str
     theme: str
     passage: str
+    question_language: str
     questions: list[ReadingQuestion]
 
 
