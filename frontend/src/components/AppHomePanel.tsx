@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { User } from "@/lib/types";
 
@@ -6,6 +6,7 @@ type Props = {
   currentUser: User;
   onOpenConversations: () => void;
   onOpenNewConversation: () => void;
+  onOpenReadingPractice: () => void;
   onOpenReview: () => void;
   onOpenProfile: () => void;
   onOpenAdmin: () => void;
@@ -14,13 +15,14 @@ type Props = {
 
 const TIER_BADGE: Record<string, { label: string; color: string }> = {
   free: { label: "Free", color: "bg-gray-100 text-gray-600 border-gray-300" },
-  pro:  { label: "Pro ✨", color: "bg-amber-100 text-amber-700 border-amber-400" },
+  pro: { label: "Pro", color: "bg-amber-100 text-amber-700 border-amber-400" },
 };
 
 export function AppHomePanel({
   currentUser,
   onOpenConversations,
   onOpenNewConversation,
+  onOpenReadingPractice,
   onOpenReview,
   onOpenProfile,
   onOpenAdmin,
@@ -34,16 +36,16 @@ export function AppHomePanel({
         <div>
           <h2 className="text-2xl font-semibold text-ink">Olá, {currentUser.full_name.split(" ")[0]}!</h2>
           <p className="text-sm text-ink/65">
-            Escolha o que deseja fazer agora: continuar conversas, iniciar um novo cenário ou revisar seu deck.
+            Escolha o que deseja fazer agora: continuar conversas, praticar interpretação ou revisar seu deck.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
           <span className={`rounded-full border px-3 py-0.5 text-xs font-semibold ${tier.color}`}>
             {tier.label}
           </span>
           {currentUser.is_admin && (
             <span className="rounded-full border border-violet-400 bg-violet-100 px-3 py-0.5 text-xs font-semibold text-violet-700">
-              Admin 🛡️
+              Admin
             </span>
           )}
         </div>
@@ -77,6 +79,17 @@ export function AppHomePanel({
 
         <button
           className="rounded-2xl border border-sky-800/20 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-sky-600"
+          onClick={onOpenReadingPractice}
+          type="button"
+        >
+          <p className="text-lg font-bold text-ink">Interpretação</p>
+          <p className="mt-1 text-sm font-medium text-ink/80">
+            Gere um texto por tema e responda questões de compreensão.
+          </p>
+        </button>
+
+        <button
+          className="rounded-2xl border border-teal-800/20 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-teal-600"
           onClick={onOpenReview}
           type="button"
         >
@@ -89,7 +102,7 @@ export function AppHomePanel({
           onClick={onOpenProfile}
           type="button"
         >
-          <p className="text-lg font-bold text-ink">👤 Meu Perfil</p>
+          <p className="text-lg font-bold text-ink">Meu Perfil</p>
           <p className="mt-1 text-sm font-medium text-ink/80">Altere nome, senha e veja seu plano.</p>
         </button>
 
@@ -99,7 +112,7 @@ export function AppHomePanel({
             onClick={onOpenAdmin}
             type="button"
           >
-            <p className="text-lg font-bold text-violet-700">🛡️ Painel Admin</p>
+            <p className="text-lg font-bold text-violet-700">Painel Admin</p>
             <p className="mt-1 text-sm font-medium text-violet-600/80">
               Gerencie usuários e limites de uso por plano.
             </p>

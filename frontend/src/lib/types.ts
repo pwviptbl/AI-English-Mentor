@@ -1,9 +1,9 @@
-export type User = {
+﻿export type User = {
   id: string;
   full_name: string;
   email: string;
   preferred_ai_provider: string;
-  tier: string;       // "free" | "pro"
+  tier: string;
   is_admin: boolean;
   created_at: string;
 };
@@ -68,6 +68,22 @@ export type ChatResponse = {
   latency_ms: number;
 };
 
+export type ReadingQuestion = {
+  question: string;
+  options: string[];
+  correct_option: string;
+  explanation_pt: string;
+};
+
+export type ReadingActivity = {
+  title: string;
+  theme: string;
+  passage: string;
+  questions: ReadingQuestion[];
+  provider_used: string;
+  model_used: string;
+};
+
 export type TokenInfo = {
   token: string;
   lemma: string | null;
@@ -119,8 +135,6 @@ export type ProgressOverview = {
   daily_history: DailyReviewStat[];
 };
 
-// ── Métricas admin ───────────────────────────────────────────────────────────────────
-
 export type UserMetric = {
   id: string;
   full_name: string;
@@ -131,11 +145,11 @@ export type UserMetric = {
   total_sessions: number;
   total_messages: number;
   total_reviews: number;
-  last_active: string | null; // ISO 8601
+  last_active: string | null;
 };
 
 export type DailyActivity = {
-  date: string; // YYYY-MM-DD
+  date: string;
   messages: number;
   sessions: number;
   reviews: number;

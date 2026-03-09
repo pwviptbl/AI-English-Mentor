@@ -1,10 +1,4 @@
-"""Provider Ollama — LLM local/gratuito via Ollama (http://localhost:11434).
-
-Para usar:
-1. Instale o Ollama: https://ollama.ai
-2. Baixe um modelo: ``ollama pull llama3.2``
-3. Defina no .env: ENABLE_OLLAMA=true, OLLAMA_MODEL=llama3.2
-"""
+﻿"""Provider Ollama - LLM local/gratuito via Ollama."""
 
 from __future__ import annotations
 
@@ -20,6 +14,8 @@ from app.services.errors import ProviderRequestError, ProviderUnavailableError
 from app.services.llm_types import (
     ChatResult,
     CorrectionResult,
+    ReadingActivity,
+    ReadingQuestion,
     SentenceAnalysis,
     TokenAnalysis,
     extract_json_object,
@@ -35,7 +31,6 @@ class OllamaProvider(BaseLLMProvider):
         return settings.enable_ollama
 
     async def _generate(self, prompt: str, timeout_seconds: int = 30) -> str:
-        """Chama a API Ollama (endpoint /api/generate, modo não-streaming)."""
         if not settings.enable_ollama:
             raise ProviderUnavailableError("Ollama provider desabilitado (ENABLE_OLLAMA=false)")
 
@@ -66,8 +61,27 @@ class OllamaProvider(BaseLLMProvider):
             raise ProviderRequestError("Ollama retornou resposta vazia")
         return text
 
+    async def _repair_json_response(self, broken_text: str, timeout_seconds: int = 20) -> dict:
+        prompt = (
+            "Fix the malformed JSON below and return ONLY valid JSON. "
+            "Do not add explanations. Preserve the original meaning and fields.\n"
+            f"Broken JSON:\n{broken_text}"
+        )
+        repaired = await self._generate(prompt, timeout_seconds)
+        return extract_json_object(repaired)
+
+    async def _extract_json_with_repair(self, text: str) -> dict:
+        try:
+            return extract_json_object(text)
+        except json.JSONDecodeError as exc:
+            logger.warning("Ollama returned malformed JSON, attempting repair: %s", exc)
+            try:
+                return await self._repair_json_response(text)
+            except Exception as repair_exc:
+                logger.warning("Ollama JSON repair failed: %s", repair_exc)
+                raise exc from repair_exc
+
     async def _generate_stream(self, prompt: str, timeout_seconds: int = 60) -> AsyncGenerator[str, None]:
-        """Chama a API Ollama em modo streaming."""
         if not settings.enable_ollama:
             raise ProviderUnavailableError("Ollama provider desabilitado")
 
@@ -103,11 +117,11 @@ class OllamaProvider(BaseLLMProvider):
             "You are a strict English correction engine. The input can be Portuguese, English, or mixed. "
             "Rewrite the user sentence in natural English while preserving intent and tone. "
             "Return ONLY valid JSON with keys: corrected_text (string), changed (boolean), notes (string in Portuguese), "
-            "correction_categories (array of short Portuguese error category strings, e.g. [\"tempo verbal\", \"preposição\"]).\n"
+            'correction_categories (array of short Portuguese error category strings, e.g. ["tempo verbal", "preposição"]).\n'
             f"Input: {raw_text}"
         )
         text = await self._generate(prompt, settings.correction_timeout_seconds)
-        parsed = extract_json_object(text)
+        parsed = await self._extract_json_with_repair(text)
 
         corrected = str(parsed.get("corrected_text", "")).strip() or raw_text.strip()
         changed = bool(parsed.get("changed", corrected != raw_text.strip()))
@@ -142,7 +156,6 @@ class OllamaProvider(BaseLLMProvider):
     async def stream_reply(
         self, corrected_text: str, history: list[dict], context: dict
     ) -> AsyncGenerator[str, None]:
-        """Versão streaming do generate_reply para Ollama."""
         history_lines = [f"{m.get('role', 'user')}: {m.get('content', '')}" for m in history[-12:]]
         persona = context.get("persona_prompt") or "You are an English conversation mentor."
         learner_name = str(context.get("learner_name") or "Learner").strip()
@@ -167,12 +180,12 @@ class OllamaProvider(BaseLLMProvider):
             '{ "original_en": "Hello world", "translation_pt": "Olá mundo", "tokens": ['
             '{ "token": "Hello", "lemma": "hello", "pos": "interjection", "translation": "olá", "definition": "saudação" },'
             '{ "token": "world", "lemma": "world", "pos": "noun", "translation": "mundo", "definition": "planeta Terra" }'
-            "] }\n"
+            '] }\n'
             f"Sentence: {sentence_en}"
         )
         text = await self._generate(prompt, settings.analysis_timeout_seconds)
         try:
-            parsed = extract_json_object(text)
+            parsed = await self._extract_json_with_repair(text)
             tokens = [
                 TokenAnalysis(
                     token=str(t.get("token", "")).strip(),
@@ -193,3 +206,53 @@ class OllamaProvider(BaseLLMProvider):
             logger.warning("Ollama analyze_sentence fallback: %s", exc)
             tokens = [TokenAnalysis(token=tok.strip(".,!?;:\"'()")) for tok in sentence_en.split() if tok.strip()]
             return SentenceAnalysis(original_en=sentence_en, translation_pt="", tokens=tokens), model
+
+    async def generate_reading_activity(self, theme: str, context: dict) -> tuple[ReadingActivity, str]:
+        model = settings.ollama_model
+        learner_name = str(context.get("learner_name") or "Learner").strip()
+        cefr_level = str(context.get("cefr_level") or "B1").strip() or "B1"
+        prompt = (
+            "Create an English reading-comprehension activity for a Brazilian learner. "
+            "Return ONLY valid JSON with keys: title, theme, passage, questions. "
+            "The passage must be in English with 2 to 4 short paragraphs, appropriate for the requested CEFR level. "
+            "questions must contain exactly 4 items. Each item must have: question, options, correct_option, explanation_pt. "
+            "options must contain exactly 4 short answer choices in English. correct_option must exactly match one option. "
+            "The questions should test main idea, detail, inference, and vocabulary in context. "
+            "Do not use markdown.\n"
+            f"Theme: {theme}\nCEFR level: {cefr_level}\nLearner name: {learner_name}"
+        )
+        text = await self._generate(prompt, settings.chat_timeout_seconds)
+        parsed = await self._extract_json_with_repair(text)
+
+        questions_payload = parsed.get("questions") or []
+        questions: list[ReadingQuestion] = []
+        for item in questions_payload:
+            if not isinstance(item, dict):
+                continue
+            options = [str(option).strip() for option in (item.get("options") or []) if str(option).strip()]
+            correct_option = str(item.get("correct_option") or "").strip()
+            if len(options) != 4:
+                continue
+            if correct_option not in options:
+                correct_option = options[0]
+            questions.append(
+                ReadingQuestion(
+                    question=str(item.get("question") or "").strip(),
+                    options=options,
+                    correct_option=correct_option,
+                    explanation_pt=str(item.get("explanation_pt") or "").strip(),
+                )
+            )
+
+        if len(questions) < 4:
+            raise ProviderRequestError("Ollama returned incomplete reading activity")
+
+        return (
+            ReadingActivity(
+                title=str(parsed.get("title") or f"Reading about {theme}").strip(),
+                theme=str(parsed.get("theme") or theme).strip(),
+                passage=str(parsed.get("passage") or "").strip(),
+                questions=questions[:4],
+            ),
+            model,
+        )

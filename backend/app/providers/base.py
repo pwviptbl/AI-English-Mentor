@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
+﻿from abc import ABC, abstractmethod
 
-from app.services.llm_types import ChatResult, CorrectionResult, SentenceAnalysis
+from app.services.llm_types import ChatResult, CorrectionResult, ReadingActivity, SentenceAnalysis
 
 
 class BaseLLMProvider(ABC):
@@ -22,4 +22,8 @@ class BaseLLMProvider(ABC):
 
     @abstractmethod
     async def analyze_sentence(self, sentence_en: str, context: dict) -> tuple[SentenceAnalysis, str]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def generate_reading_activity(self, theme: str, context: dict) -> tuple[ReadingActivity, str]:
         raise NotImplementedError
