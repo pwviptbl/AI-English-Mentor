@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import type { Message, ReadingPracticeState, Session, User } from "@/lib/types";
+import type { Message, ReadingPracticeState, Session, ThemeMode, User } from "@/lib/types";
 
 const defaultReadingPracticeState: ReadingPracticeState = {
   selectedTheme: "Technology",
@@ -26,6 +26,7 @@ type MentorState = {
   messagesBySession: Record<string, Message[]>;
   readingPractice: ReadingPracticeState;
   readingPracticeUserId: string | null;
+  themeMode: ThemeMode;
   setAuth: (accessToken: string, refreshToken: string) => void;
   setCurrentUser: (user: User | null) => void;
   logout: () => void;
@@ -36,6 +37,8 @@ type MentorState = {
   removeSession: (sessionId: string) => void;
   setReadingPractice: (payload: Partial<ReadingPracticeState>) => void;
   resetReadingPractice: () => void;
+  setThemeMode: (themeMode: ThemeMode) => void;
+  toggleThemeMode: () => void;
 };
 
 export const useMentorStore = create<MentorState>()(
@@ -49,6 +52,7 @@ export const useMentorStore = create<MentorState>()(
       messagesBySession: {},
       readingPractice: defaultReadingPracticeState,
       readingPracticeUserId: null,
+      themeMode: "light",
       setAuth: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setCurrentUser: (currentUser) =>
         set((state) => {
@@ -116,6 +120,11 @@ export const useMentorStore = create<MentorState>()(
           readingPractice: defaultReadingPracticeState,
           readingPracticeUserId: state.currentUser?.id ?? null,
         })),
+      setThemeMode: (themeMode) => set({ themeMode }),
+      toggleThemeMode: () =>
+        set((state) => ({
+          themeMode: state.themeMode === "dark" ? "light" : "dark",
+        })),
     }),
     {
       name: "ai-english-mentor-store",
@@ -126,6 +135,7 @@ export const useMentorStore = create<MentorState>()(
         currentUser: state.currentUser,
         readingPractice: state.readingPractice,
         readingPracticeUserId: state.readingPracticeUserId,
+        themeMode: state.themeMode,
       }),
     },
   ),

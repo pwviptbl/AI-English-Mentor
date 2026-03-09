@@ -1,4 +1,6 @@
-﻿export type User = {
+﻿export type ThemeMode = "light" | "dark";
+
+export type User = {
   id: string;
   full_name: string;
   email: string;
@@ -195,3 +197,5 @@ export type AdminMetrics = {
   daily_activity: DailyActivity[];
   user_metrics: UserMetric[];
 };
+
+

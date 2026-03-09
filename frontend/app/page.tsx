@@ -13,6 +13,7 @@ import { ProgressDashboard } from "@/components/ProgressDashboard";
 import { ReadingPracticePanel } from "@/components/ReadingPracticePanel";
 import { ReviewPanel } from "@/components/ReviewPanel";
 import { ShadowingPanel } from "@/components/ShadowingPanel";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { deleteSession, listMessages, listSessions, me } from "@/lib/api";
 import { useMentorStore } from "@/store/useMentorStore";
 
@@ -35,18 +36,25 @@ export default function HomePage() {
     sessions,
     activeSessionId,
     messagesBySession,
+    themeMode,
     setCurrentUser,
     logout,
     setSessions,
     setActiveSessionId,
     setMessages,
     removeSession,
+    toggleThemeMode,
   } = useMentorStore();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [screen, setScreen] = useState<AppScreen>("home");
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    document.documentElement.style.colorScheme = themeMode;
+  }, [themeMode]);
 
   async function reloadProfileAndSessions() {
     if (!accessToken) return;
@@ -115,7 +123,10 @@ export default function HomePage() {
 
   if (!accessToken || !currentUser) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-4 sm:p-8">
+      <main className="relative flex min-h-screen items-center justify-center p-4 sm:p-8">
+        <div className="absolute right-4 top-4 sm:right-8 sm:top-8">
+          <ThemeToggle themeMode={themeMode} onToggle={toggleThemeMode} compact />
+        </div>
         <div className="w-full">
           <AuthPanel />
         </div>
@@ -148,11 +159,14 @@ export default function HomePage() {
   ] as const;
 
   return (
-    <main className="min-h-screen p-4 sm:p-8">
+    <main className="min-h-screen p-4 sm:p-8 transition-colors duration-300">
       <div className="mx-auto max-w-7xl space-y-4">
         <header className="rounded-2xl border border-emerald-900/20 bg-panel shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between p-3 sm:p-4">
-            <h1 className="text-lg font-bold sm:text-2xl">AI English Mentor</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-bold sm:text-2xl">AI English Mentor</h1>
+              <ThemeToggle themeMode={themeMode} onToggle={toggleThemeMode} />
+            </div>
 
             <nav className="hidden items-center gap-1.5 md:flex">
               {navItems.map(([key, label]) => (
@@ -195,11 +209,14 @@ export default function HomePage() {
             </button>
           </div>
 
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out md:hidden ${menuOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}>
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out md:hidden ${menuOpen ? "max-h-[560px] opacity-100" : "max-h-0 opacity-0"}`}>
             <div className="border-t border-emerald-900/10 p-4">
-              <div className="mb-4 rounded-xl bg-emerald-50 p-3">
-                <p className="text-sm font-semibold text-ink">{currentUser.full_name}</p>
-                <p className="text-xs text-ink/50">{currentUser.email}</p>
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3">
+                <div>
+                  <p className="text-sm font-semibold text-ink">{currentUser.full_name}</p>
+                  <p className="text-xs text-ink/50">{currentUser.email}</p>
+                </div>
+                <ThemeToggle themeMode={themeMode} onToggle={toggleThemeMode} compact />
               </div>
 
               <nav className="flex flex-col gap-1.5">
