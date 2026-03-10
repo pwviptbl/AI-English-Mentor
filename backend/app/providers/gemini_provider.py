@@ -1,5 +1,4 @@
-import json
-import re
+﻿import json
 
 import httpx
 
@@ -10,6 +9,8 @@ from app.services.errors import ProviderRequestError, ProviderUnavailableError
 from app.services.llm_types import (
     ChatResult,
     CorrectionResult,
+    ReadingActivity,
+    ReadingQuestion,
     SentenceAnalysis,
     TokenAnalysis,
     extract_json_object,
@@ -22,7 +23,6 @@ class GeminiProvider(BaseLLMProvider):
     name = "gemini"
 
     def is_available(self) -> bool:
-        # Disponível apenas se a chave da API estiver configurada
         return bool(settings.gemini_api_key)
 
     async def _generate(self, prompt: str, model: str, timeout_seconds: int) -> str:
@@ -70,7 +70,7 @@ class GeminiProvider(BaseLLMProvider):
             "You are a strict English correction engine. The input can be Portuguese, English, or mixed. "
             "Rewrite the user sentence in natural English while preserving intent and tone. "
             "Return ONLY valid JSON with keys: corrected_text (string), changed (boolean), notes (string), "
-            "correction_categories (array of strings — error category names in Portuguese, e.g. "
+            "correction_categories (array of strings - error category names in Portuguese, e.g. "
             '["tempo verbal", "pronominal", "preposição", "vocabulário", "ortografia", "gramática"]).'
             "notes must be a concise explanation in Portuguese of each error found.\n"
             f"Input: {raw_text}"
@@ -132,12 +132,7 @@ class GeminiProvider(BaseLLMProvider):
         text = await self._generate(prompt, model, settings.chat_timeout_seconds)
         return ChatResult(reply=text.strip()), model
 
-    async def stream_reply(
-        self, corrected_text: str, history: list[dict], context: dict
-    ):
-        """Streaming da resposta do assistente via Gemini streamGenerateContent."""
-        from collections.abc import AsyncGenerator  # import local para evitar ciclo
-
+    async def stream_reply(self, corrected_text: str, history: list[dict], context: dict):
         if not settings.gemini_api_key:
             raise ProviderUnavailableError("GEMINI_API_KEY is not set")
 
@@ -163,9 +158,8 @@ class GeminiProvider(BaseLLMProvider):
             "generationConfig": {"temperature": 0.2},
         }
 
-        import httpx as _httpx
         try:
-            async with _httpx.AsyncClient(timeout=settings.chat_timeout_seconds) as client:
+            async with httpx.AsyncClient(timeout=settings.chat_timeout_seconds) as client:
                 async with client.stream("POST", url, json=payload) as response:
                     async for line in response.aiter_lines():
                         if not line.startswith("data:"):
@@ -184,7 +178,7 @@ class GeminiProvider(BaseLLMProvider):
                                         yield token
                         except json.JSONDecodeError:
                             continue
-        except _httpx.RequestError as exc:
+        except httpx.RequestError as exc:
             raise ProviderRequestError(f"Gemini stream error: {exc}") from exc
 
     async def analyze_sentence(self, sentence_en: str, context: dict) -> tuple[SentenceAnalysis, str]:
@@ -198,7 +192,7 @@ class GeminiProvider(BaseLLMProvider):
             '{ "original_en": "Hello world", "translation_pt": "Olá mundo", "tokens": ['
             '{ "token": "Hello", "lemma": "hello", "pos": "interjection", "translation": "olá", "definition": "saudação" },'
             '{ "token": "world", "lemma": "world", "pos": "noun", "translation": "mundo", "definition": "planeta Terra" }'
-            "] }\n"
+            '] }\n'
             f"Sentence: {sentence_en}"
         )
 
@@ -219,12 +213,8 @@ class GeminiProvider(BaseLLMProvider):
                         token=str(item.get("token", "")).strip(),
                         lemma=(str(item.get("lemma")).strip() if item.get("lemma") else None),
                         pos=(str(item.get("pos")).strip() if item.get("pos") else None),
-                        translation=(
-                            str(item.get("translation")).strip() if item.get("translation") else None
-                        ),
-                        definition=(
-                            str(item.get("definition")).strip() if item.get("definition") else None
-                        ),
+                        translation=(str(item.get("translation")).strip() if item.get("translation") else None),
+                        definition=(str(item.get("definition")).strip() if item.get("definition") else None),
                     )
                 )
 
@@ -243,7 +233,6 @@ class GeminiProvider(BaseLLMProvider):
         except Exception as exc:
             logger.warning("Gemini analysis fallback activated: %s", exc)
 
-        # Graceful fallback when analysis model returns malformed output or times out.
         raw_tokens = [tok.strip(".,!?;:\"'()") for tok in sentence_en.split() if tok.strip()]
         tokens = [TokenAnalysis(token=tok) for tok in raw_tokens]
         translation_pt = await self._translate_sentence_pt(sentence_en, model)
@@ -255,3 +244,62 @@ class GeminiProvider(BaseLLMProvider):
             ),
             model,
         )
+
+    async def generate_reading_activity(self, theme: str, context: dict) -> tuple[ReadingActivity, str]:
+        model = settings.gemini_model_chat
+        learner_name = str(context.get("learner_name") or "Learner").strip()
+        cefr_level = str(context.get("cefr_level") or "B1").strip() or "B1"
+        question_language = str(context.get("question_language") or "en").strip().lower() or "en"
+        question_language_name = "Portuguese" if question_language == "pt" else "English"
+        prompt = (
+            "Create an English reading-comprehension activity for a Brazilian learner. "
+            "Return ONLY valid JSON with keys: title, theme, passage, questions. "
+            "The passage must be in English with 2 to 4 short paragraphs, appropriate for the requested CEFR level. "
+            "questions must contain exactly 4 items. Each item must have: question, options, correct_option, explanation. "
+            "options must contain exactly 4 short answer choices in the selected question language. correct_option must exactly match one option. "
+            "The questions should test main idea, detail, inference, and vocabulary in context. "
+            "Keep the passage in English, but write the questions, options, correct_option, and explanation in the selected question language. "
+            "Do not use markdown.\n"
+            f"Theme: {theme}\n"
+            f"CEFR level: {cefr_level}\n"
+            f"Learner name: {learner_name}\n"
+            f"Question language: {question_language_name}"
+        )
+        text = await self._generate(prompt, model, settings.chat_timeout_seconds)
+        parsed = extract_json_object(text)
+
+        questions_payload = parsed.get("questions") or []
+        questions: list[ReadingQuestion] = []
+        for item in questions_payload:
+            if not isinstance(item, dict):
+                continue
+            options = [str(option).strip() for option in (item.get("options") or []) if str(option).strip()]
+            correct_option = str(item.get("correct_option") or "").strip()
+            if len(options) != 4:
+                continue
+            if correct_option not in options:
+                correct_option = options[0]
+            questions.append(
+                ReadingQuestion(
+                    question=str(item.get("question") or "").strip(),
+                    options=options,
+                    correct_option=correct_option,
+                    explanation=str(item.get("explanation") or "").strip(),
+                )
+            )
+
+        if len(questions) < 4:
+            raise ProviderRequestError("Gemini returned incomplete reading activity")
+
+        return (
+            ReadingActivity(
+                title=str(parsed.get("title") or f"Reading about {theme}").strip(),
+                theme=str(parsed.get("theme") or theme).strip(),
+                passage=str(parsed.get("passage") or "").strip(),
+                question_language=question_language,
+                questions=questions[:4],
+            ),
+            model,
+        )
+
+

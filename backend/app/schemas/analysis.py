@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+﻿from pydantic import BaseModel
 
 
 class TokenInfo(BaseModel):
@@ -13,3 +13,7 @@ class MessageAnalysisResponse(BaseModel):
     original_en: str
     translation_pt: str
     tokens: list[TokenInfo]
+
+
+class TextAnalysisRequest(BaseModel):
+    text: str

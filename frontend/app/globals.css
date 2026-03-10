@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -8,10 +8,32 @@
   --ink: #1f2f2e;
   --accent: #0f766e;
   --ember: #b45309;
+  --surface: #ffffff;
+  --surface-alt: #f4f4ef;
+  --surface-soft: rgba(255, 255, 255, 0.78);
+  --border-soft: rgba(31, 47, 46, 0.12);
+  --shadow-soft: 0 18px 45px rgba(16, 24, 32, 0.08);
+}
+
+html[data-theme="dark"] {
+  --bg: #081216;
+  --panel: #0d1a1f;
+  --ink: #e7f4ef;
+  --accent: #2dd4bf;
+  --ember: #f59e0b;
+  --surface: #122127;
+  --surface-alt: #182930;
+  --surface-soft: rgba(18, 33, 39, 0.86);
+  --border-soft: rgba(226, 232, 240, 0.12);
+  --shadow-soft: 0 22px 52px rgba(0, 0, 0, 0.34);
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
 }
 
 body {
@@ -21,4 +43,104 @@ body {
     radial-gradient(circle at 10% 10%, rgba(15, 118, 110, 0.16), transparent 35%),
     radial-gradient(circle at 90% 20%, rgba(180, 83, 9, 0.15), transparent 45%),
     var(--bg);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 12% 12%, rgba(45, 212, 191, 0.14), transparent 34%),
+    radial-gradient(circle at 88% 18%, rgba(245, 158, 11, 0.12), transparent 38%),
+    radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.08), transparent 35%),
+    var(--bg);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] .bg-white\/75 {
+  background-color: var(--surface) !important;
+}
+
+html[data-theme="dark"] .bg-stone-50,
+html[data-theme="dark"] .bg-gray-50,
+html[data-theme="dark"] .bg-emerald-50,
+html[data-theme="dark"] .bg-sky-50,
+html[data-theme="dark"] .bg-amber-50,
+html[data-theme="dark"] .bg-violet-50,
+html[data-theme="dark"] .bg-red-50,
+html[data-theme="dark"] .bg-gray-100,
+html[data-theme="dark"] .bg-emerald-100,
+html[data-theme="dark"] .bg-amber-100,
+html[data-theme="dark"] .bg-violet-100 {
+  background-color: var(--surface-alt) !important;
+}
+
+html[data-theme="dark"] .border-emerald-900\/10,
+html[data-theme="dark"] .border-emerald-900\/15,
+html[data-theme="dark"] .border-emerald-900\/20,
+html[data-theme="dark"] .border-emerald-900\/25,
+html[data-theme="dark"] .border-amber-800\/15,
+html[data-theme="dark"] .border-amber-800\/20,
+html[data-theme="dark"] .border-sky-900\/10,
+html[data-theme="dark"] .border-sky-900\/20,
+html[data-theme="dark"] .border-violet-200,
+html[data-theme="dark"] .border-violet-300,
+html[data-theme="dark"] .border-violet-400,
+html[data-theme="dark"] .border-red-200,
+html[data-theme="dark"] .border-red-300,
+html[data-theme="dark"] .border-gray-100,
+html[data-theme="dark"] .border-gray-300,
+html[data-theme="dark"] .border-amber-200,
+html[data-theme="dark"] .border-amber-400,
+html[data-theme="dark"] .border-emerald-200,
+html[data-theme="dark"] .border-sky-200 {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .shadow-\[0_4px_20px_rgba\(0\,0\,0\,0\.06\)\],
+html[data-theme="dark"] .shadow-\[0_8px_24px_rgba\(0\,0\,0\,0\.05\)\],
+html[data-theme="dark"] .shadow-\[0_8px_30px_rgba\(0\,0\,0\,0\.06\)\],
+html[data-theme="dark"] .shadow-\[0_10px_25px_rgba\(0\,0\,0\,0\.08\)\],
+html[data-theme="dark"] .shadow-\[0_12px_40px_rgba\(0\,0\,0\,0\.06\)\],
+html[data-theme="dark"] .shadow-\[0_14px_32px_rgba\(0\,0\,0\,0\.08\)\],
+html[data-theme="dark"] .shadow-\[0_20px_45px_rgba\(0\,0\,0\,0\.08\)\],
+html[data-theme="dark"] .shadow-lg {
+  box-shadow: var(--shadow-soft) !important;
+}
+
+html[data-theme="dark"] .text-gray-600,
+html[data-theme="dark"] .text-gray-700,
+html[data-theme="dark"] .text-violet-700,
+html[data-theme="dark"] .text-amber-700,
+html[data-theme="dark"] .text-emerald-700,
+html[data-theme="dark"] .text-emerald-800,
+html[data-theme="dark"] .text-sky-700,
+html[data-theme="dark"] .text-sky-800,
+html[data-theme="dark"] .text-red-600,
+html[data-theme="dark"] .text-red-700 {
+  color: var(--ink) !important;
+}
+
+html[data-theme="dark"] .hover\:bg-red-50:hover,
+html[data-theme="dark"] .hover\:bg-sky-100:hover,
+html[data-theme="dark"] .hover\:bg-sky-50\/40:hover,
+html[data-theme="dark"] .hover\:bg-white:hover,
+html[data-theme="dark"] .hover\:bg-emerald-900\/8:hover,
+html[data-theme="dark"] .hover\:bg-emerald-900\/15:hover,
+html[data-theme="dark"] .hover\:bg-emerald-900\/20:hover {
+  background-color: var(--surface-alt) !important;
+}
+
+html[data-theme="dark"] .backdrop-blur {
+  background-color: var(--surface-soft) !important;
+}
+html[data-theme="dark"] .bg-ink {
+  background-color: #0b1519 !important;
+}
+
+html[data-theme="dark"] .bg-ink.text-white,
+html[data-theme="dark"] .bg-ink .text-white {
+  color: #f5fbf8 !important;
 }

@@ -1,4 +1,4 @@
-import hashlib
+﻿import hashlib
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -24,15 +24,14 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(512))
     preferred_ai_provider: Mapped[str] = mapped_column(String(32), default="gemini")
-    # perfil / acesso
-    tier: Mapped[str] = mapped_column(String(16), default="free", index=True)  # "free" | "pro"
+    tier: Mapped[str] = mapped_column(String(16), default="free", index=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    # False = aguardando ativação pelo admin; True = pode usar a plataforma
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     flashcards: Mapped[list["Flashcard"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    reading_attempts: Mapped[list["ReadingAttempt"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class Session(Base):
@@ -42,17 +41,12 @@ class Session(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     topic: Mapped[str] = mapped_column(String(120))
     persona_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # nível CEFR (A1, A2, B1, B2, C1, C2) escolhido pelo usuário
     cefr_level: Mapped[str | None] = mapped_column(String(4), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utc_now, onupdate=_utc_now
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now, onupdate=_utc_now)
 
     user: Mapped[User] = relationship(back_populates="sessions")
-    messages: Mapped[list["Message"]] = relationship(
-        back_populates="session", cascade="all, delete-orphan"
-    )
+    messages: Mapped[list["Message"]] = relationship(back_populates="session", cascade="all, delete-orphan")
 
 
 class Message(Base):
@@ -89,19 +83,14 @@ class Flashcard(Base):
     repetitions: Mapped[int] = mapped_column(Integer, default=0)
     ease_factor: Mapped[float] = mapped_column(Float, default=2.5)
     lapses: Mapped[int] = mapped_column(Integer, default=0)
-    # campos FSRS v4
     stability: Mapped[float] = mapped_column(Float, default=0.0)
     difficulty: Mapped[float] = mapped_column(Float, default=5.0)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utc_now, onupdate=_utc_now
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now, onupdate=_utc_now)
 
     user: Mapped[User] = relationship(back_populates="flashcards")
-    review_logs: Mapped[list["ReviewLog"]] = relationship(
-        back_populates="flashcard", cascade="all, delete-orphan"
-    )
+    review_logs: Mapped[list["ReviewLog"]] = relationship(back_populates="flashcard", cascade="all, delete-orphan")
 
 
 class ReviewLog(Base):
@@ -119,14 +108,27 @@ class ReviewLog(Base):
     flashcard: Mapped[Flashcard] = relationship(back_populates="review_logs")
 
 
+class ReadingAttempt(Base):
+    __tablename__ = "reading_attempts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    theme: Mapped[str] = mapped_column(String(120), index=True)
+    question_language: Mapped[str] = mapped_column(String(2), default="en")
+    total_questions: Mapped[int] = mapped_column(Integer)
+    correct_answers: Mapped[int] = mapped_column(Integer)
+    accuracy_rate: Mapped[float] = mapped_column(Float)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now, index=True)
+
+    user: Mapped[User] = relationship(back_populates="reading_attempts")
+
+
 def _sentence_hash(sentence: str) -> str:
-    """Gera hash SHA-256 da sentença (para cache de análise)."""
     return hashlib.sha256(sentence.strip().lower().encode()).hexdigest()
 
 
 class AnalysisCache(Base):
-    """Cache de análise LLM por sentença — evita chamadas repetidas à API."""
-
     __tablename__ = "analysis_cache"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
@@ -138,13 +140,9 @@ class AnalysisCache(Base):
 
 
 class TierLimits(Base):
-    """Limites diários por nível de conta (free / pro) — configuráveis pelo admin."""
-
     __tablename__ = "tier_limits"
 
-    tier: Mapped[str] = mapped_column(String(16), primary_key=True)   # "free" | "pro"
+    tier: Mapped[str] = mapped_column(String(16), primary_key=True)
     daily_chat_limit: Mapped[int] = mapped_column(Integer, default=20)
     daily_analysis_limit: Mapped[int] = mapped_column(Integer, default=10)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=_utc_now, onupdate=_utc_now
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now, onupdate=_utc_now)

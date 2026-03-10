@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr
@@ -17,7 +17,7 @@ class AdminUserListItem(BaseModel):
 
 
 class AdminUserUpdate(BaseModel):
-    tier: str | None = None        # "free" | "pro"
+    tier: str | None = None
     is_admin: bool | None = None
     is_active: bool | None = None
 
@@ -41,10 +41,7 @@ class ProfileUpdate(BaseModel):
     new_password: str | None = None
 
 
-# ── Métricas de uso ──────────────────────────────────────────────────────────
-
 class UserMetric(BaseModel):
-    """Dados de uso de um único usuário para a página de métricas admin."""
     id: str
     full_name: str
     email: EmailStr
@@ -52,25 +49,25 @@ class UserMetric(BaseModel):
     is_active: bool
     created_at: datetime
     total_sessions: int
-    total_messages: int      # apenas mensagens do role=user
+    total_messages: int
     total_reviews: int
-    last_active: Optional[datetime]  # data da última mensagem ou review
+    total_reading_activities: int
+    total_reading_questions: int
+    last_active: Optional[datetime]
 
     model_config = {"from_attributes": True}
 
 
 class DailyActivity(BaseModel):
-    """Atividade agregada de todos os usuários em um único dia."""
-    date: str          # ISO 8601 (YYYY-MM-DD)
+    date: str
     messages: int
     sessions: int
     reviews: int
+    reading_activities: int
 
 
 class AdminMetricsResponse(BaseModel):
-    """Resposta completa do endpoint GET /admin/metrics."""
     period_days: int
-    # KPIs gerais
     total_users: int
     active_users: int
     inactive_users: int
@@ -78,7 +75,8 @@ class AdminMetricsResponse(BaseModel):
     messages_period: int
     sessions_period: int
     reviews_period: int
-    # Série temporal para gráfico
+    reading_activities_period: int
+    reading_questions_answered_period: int
+    reading_correct_answers_period: int
     daily_activity: list[DailyActivity]
-    # Breakdown por usuário
     user_metrics: list[UserMetric]

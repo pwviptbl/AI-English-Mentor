@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 
 import "./globals.css";
@@ -24,8 +24,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${plexMono.variable} font-[var(--font-display)]`}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${spaceGrotesk.variable} ${plexMono.variable} font-[var(--font-display)]`}>
+        {children}
+      </body>
     </html>
   );
 }

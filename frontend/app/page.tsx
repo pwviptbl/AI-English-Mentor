@@ -1,21 +1,33 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
-import { AuthPanel } from "@/components/AuthPanel";
-import { AppHomePanel } from "@/components/AppHomePanel";
 import { AdminPanel } from "@/components/AdminPanel";
+import { AppHomePanel } from "@/components/AppHomePanel";
+import { AuthPanel } from "@/components/AuthPanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ConversationsPanel } from "@/components/ConversationsPanel";
 import { NewConversationPanel } from "@/components/NewConversationPanel";
 import { ProfilePanel } from "@/components/ProfilePanel";
 import { ProgressDashboard } from "@/components/ProgressDashboard";
+import { ReadingPracticePanel } from "@/components/ReadingPracticePanel";
 import { ReviewPanel } from "@/components/ReviewPanel";
 import { ShadowingPanel } from "@/components/ShadowingPanel";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { deleteSession, listMessages, listSessions, me } from "@/lib/api";
 import { useMentorStore } from "@/store/useMentorStore";
 
-type AppScreen = "home" | "conversations" | "new-conversation" | "review" | "chat" | "progress" | "shadowing" | "profile" | "admin";
+type AppScreen =
+  | "home"
+  | "conversations"
+  | "new-conversation"
+  | "reading-practice"
+  | "review"
+  | "chat"
+  | "progress"
+  | "shadowing"
+  | "profile"
+  | "admin";
 
 export default function HomePage() {
   const {
@@ -24,18 +36,25 @@ export default function HomePage() {
     sessions,
     activeSessionId,
     messagesBySession,
+    themeMode,
     setCurrentUser,
     logout,
     setSessions,
     setActiveSessionId,
     setMessages,
     removeSession,
+    toggleThemeMode,
   } = useMentorStore();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [screen, setScreen] = useState<AppScreen>("home");
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+    document.documentElement.style.colorScheme = themeMode;
+  }, [themeMode]);
 
   async function reloadProfileAndSessions() {
     if (!accessToken) return;
@@ -104,7 +123,10 @@ export default function HomePage() {
 
   if (!accessToken || !currentUser) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4 sm:p-8">
+      <main className="relative flex min-h-screen items-center justify-center p-4 sm:p-8">
+        <div className="absolute right-4 top-4 sm:right-8 sm:top-8">
+          <ThemeToggle themeMode={themeMode} onToggle={toggleThemeMode} compact />
+        </div>
         <div className="w-full">
           <AuthPanel />
         </div>
@@ -112,30 +134,45 @@ export default function HomePage() {
     );
   }
 
+  const navItems = [
+    ["home", "Início"],
+    ["conversations", "Conversas"],
+    ["new-conversation", "Nova conversa"],
+    ["reading-practice", "Interpretação"],
+    ["review", "Revisão"],
+    ["progress", "Progresso"],
+    ["shadowing", "Shadowing"],
+    ["profile", "Perfil"],
+    ...(currentUser.is_admin ? [["admin", "Admin"]] : []),
+  ] as const;
+
+  const mobileNavItems = [
+    ["home", "Inicio"],
+    ["conversations", "Conversas"],
+    ["new-conversation", "Nova conversa"],
+    ["reading-practice", "Interpretação"],
+    ["review", "Revisão"],
+    ["progress", "Progresso"],
+    ["shadowing", "Shadowing"],
+    ["profile", "Meu Perfil"],
+    ...(currentUser.is_admin ? [["admin", "Admin"]] : []),
+  ] as const;
+
   return (
-    <main className="min-h-screen p-4 sm:p-8">
+    <main className="min-h-screen p-4 sm:p-8 transition-colors duration-300">
       <div className="mx-auto max-w-7xl space-y-4">
-        {/* ── Top Bar (fixo, compacto) ── */}
         <header className="rounded-2xl border border-emerald-900/20 bg-panel shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
           <div className="flex items-center justify-between p-3 sm:p-4">
-            <h1 className="text-lg font-bold sm:text-2xl">AI English Mentor</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-bold sm:text-2xl">AI English Mentor</h1>
+              <ThemeToggle themeMode={themeMode} onToggle={toggleThemeMode} />
+            </div>
 
-            {/* Nav desktop (hidden em mobile) */}
             <nav className="hidden items-center gap-1.5 md:flex">
-              {([
-                ["home", "Início"],
-                ["conversations", "Conversas"],
-                ["new-conversation", "Nova conversa"],
-                ["review", "Revisão"],
-                ["progress", "📊 Progresso"],
-                ["shadowing", "🔁 Shadowing"],
-                ["profile", "👤 Perfil"],
-                ...(currentUser.is_admin ? [["admin", "🛡️ Admin"]] as const : []),
-              ] as const).map(([key, label]) => (
+              {navItems.map(([key, label]) => (
                 <button
                   key={key}
-                  className={`rounded-xl px-3 py-2 text-sm font-medium transition ${screen === key ? "bg-accent text-white" : "bg-emerald-900/10 text-ink hover:bg-emerald-900/15"
-                    }`}
+                  className={`rounded-xl px-3 py-2 text-sm font-medium transition ${screen === key ? "bg-accent text-white" : "bg-emerald-900/10 text-ink hover:bg-emerald-900/15"}`}
                   type="button"
                   onClick={() => setScreen(key as AppScreen)}
                 >
@@ -151,7 +188,6 @@ export default function HomePage() {
               </button>
             </nav>
 
-            {/* Botão hambúrguer (mobile only) */}
             <button
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-900/10 transition hover:bg-emerald-900/20 md:hidden"
               type="button"
@@ -160,61 +196,49 @@ export default function HomePage() {
             >
               {menuOpen ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
                 </svg>
               )}
             </button>
           </div>
 
-          {/* Painel slide-down (mobile) */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out md:hidden ${menuOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-              }`}
-          >
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out md:hidden ${menuOpen ? "max-h-[560px] opacity-100" : "max-h-0 opacity-0"}`}>
             <div className="border-t border-emerald-900/10 p-4">
-              {/* Info do usuário */}
-              <div className="mb-4 rounded-xl bg-emerald-50 p-3">
-                <p className="text-sm font-semibold text-ink">{currentUser.full_name}</p>
-                <p className="text-xs text-ink/50">{currentUser.email}</p>
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3">
+                <div>
+                  <p className="text-sm font-semibold text-ink">{currentUser.full_name}</p>
+                  <p className="text-xs text-ink/50">{currentUser.email}</p>
+                </div>
+                <ThemeToggle themeMode={themeMode} onToggle={toggleThemeMode} compact />
               </div>
 
-              {/* Links de navegação */}
               <nav className="flex flex-col gap-1.5">
-                {([
-                  ["home", "🏠", "Início"],
-                  ["conversations", "💬", "Conversas"],
-                  ["new-conversation", "✨", "Nova conversa"],
-                  ["review", "📝", "Revisão"],
-                  ["progress", "📊", "Progresso"],
-                  ["shadowing", "🔁", "Shadowing"],                ["profile", "👤", "Meu Perfil"],
-                ...(currentUser.is_admin ? [["admin", "🛡️", "Admin"]] as const : []),                ] as const).map(([key, icon, label]) => (
+                {mobileNavItems.map(([key, label]) => (
                   <button
                     key={key}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${screen === key
-                      ? "bg-accent text-white"
-                      : "text-ink hover:bg-emerald-900/8"
-                      }`}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${screen === key ? "bg-accent text-white" : "text-ink hover:bg-emerald-900/8"}`}
                     type="button"
                     onClick={() => {
                       setScreen(key as AppScreen);
                       setMenuOpen(false);
                     }}
                   >
-                    <span className="text-base">{icon}</span>
                     {label}
                   </button>
                 ))}
                 <div className="my-1.5 border-t border-emerald-900/10" />
                 <button
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
                   type="button"
                   onClick={logout}
                 >
-                  <span className="text-base">🚪</span>
                   Sair
                 </button>
               </nav>
@@ -231,6 +255,7 @@ export default function HomePage() {
             hasActiveConversation={Boolean(activeSessionId)}
             onOpenConversations={() => setScreen("conversations")}
             onOpenNewConversation={() => setScreen("new-conversation")}
+            onOpenReadingPractice={() => setScreen("reading-practice")}
             onOpenReview={() => setScreen("review")}
             onOpenProfile={() => setScreen("profile")}
             onOpenAdmin={() => setScreen("admin")}
@@ -251,6 +276,8 @@ export default function HomePage() {
         {screen === "new-conversation" ? (
           <NewConversationPanel token={accessToken} onSessionCreated={onSessionCreated} />
         ) : null}
+
+        {screen === "reading-practice" ? <ReadingPracticePanel token={accessToken} /> : null}
 
         {screen === "review" ? (
           <div className="space-y-3">
@@ -287,6 +314,13 @@ export default function HomePage() {
               <button
                 className="rounded-xl bg-sky-700 px-3 py-2 text-sm font-medium text-white"
                 type="button"
+                onClick={() => setScreen("reading-practice")}
+              >
+                Interpretação
+              </button>
+              <button
+                className="rounded-xl bg-teal-700 px-3 py-2 text-sm font-medium text-white"
+                type="button"
                 onClick={() => setScreen("review")}
               >
                 Ir para revisão
@@ -319,14 +353,9 @@ export default function HomePage() {
             )}
           </section>
         ) : null}
-        {screen === "progress" ? (
-          <ProgressDashboard token={accessToken} />
-        ) : null}
 
-        {screen === "shadowing" ? (
-          <ShadowingPanel token={accessToken} sessionMessages={activeMessages} />
-        ) : null}
-
+        {screen === "progress" ? <ProgressDashboard token={accessToken} /> : null}
+        {screen === "shadowing" ? <ShadowingPanel token={accessToken} sessionMessages={activeMessages} /> : null}
         {screen === "profile" ? (
           <ProfilePanel
             token={accessToken}
@@ -334,7 +363,6 @@ export default function HomePage() {
             onUserUpdated={(updated) => setCurrentUser(updated)}
           />
         ) : null}
-
         {screen === "admin" && currentUser.is_admin ? (
           <AdminPanel token={accessToken} currentUserId={currentUser.id} />
         ) : null}

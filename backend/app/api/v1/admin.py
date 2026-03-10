@@ -1,4 +1,4 @@
-"""Endpoints administrativos — listagem de usuários, gestão de tier e limites."""
+﻿"""Endpoints administrativos - listagem de usuarios, gestao de tier e limites."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_admin
-from app.db.models import Flashcard, Message, ReviewLog, Session, TierLimits, User
+from app.db.models import Flashcard, Message, ReadingAttempt, ReviewLog, Session, TierLimits, User
 from app.db.session import get_db
 from app.schemas.admin import (
     AdminMetricsResponse,
@@ -18,7 +18,6 @@ from app.schemas.admin import (
     TierLimitsUpdate,
     UserMetric,
 )
-from app.schemas.auth import UserResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -27,7 +26,6 @@ VALID_TIERS = {"free", "pro"}
 
 @router.get("/users", response_model=list[AdminUserListItem], dependencies=[Depends(require_admin)])
 async def list_users(db: AsyncSession = Depends(get_db)) -> list[AdminUserListItem]:
-    """Lista todos os usuários (somente admin)."""
     users = (await db.execute(select(User).order_by(User.created_at.asc()))).scalars().all()
     return list(users)
 
@@ -39,12 +37,10 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AdminUserListItem:
-    """Altera tier e/ou status admin de um usuário (somente admin)."""
     target = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not target:
         raise HTTPException(status_code=404, detail="user not found")
 
-    # Impede que um admin remova seus próprios privilégios
     if target.id == current_user.id and payload.is_admin is False:
         raise HTTPException(status_code=400, detail="cannot remove your own admin privileges")
 
@@ -70,7 +66,6 @@ async def delete_user(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    """Exclui permanentemente um usuário (somente admin, não pode excluir a si mesmo)."""
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="cannot delete your own account")
 
@@ -85,7 +80,6 @@ async def delete_user(
 
 @router.get("/tier-limits", response_model=list[TierLimitsResponse], dependencies=[Depends(require_admin)])
 async def get_tier_limits(db: AsyncSession = Depends(get_db)) -> list[TierLimitsResponse]:
-    """Retorna os limites diários configurados para cada tier."""
     rows = (await db.execute(select(TierLimits).order_by(TierLimits.tier))).scalars().all()
     return list(rows)
 
@@ -100,7 +94,6 @@ async def update_tier_limits(
     payload: TierLimitsUpdate,
     db: AsyncSession = Depends(get_db),
 ) -> TierLimitsResponse:
-    """Atualiza os limites diários de um tier (somente admin)."""
     if tier not in VALID_TIERS:
         raise HTTPException(status_code=400, detail=f"tier must be one of {VALID_TIERS}")
 
@@ -115,8 +108,8 @@ async def update_tier_limits(
     await db.commit()
     await db.refresh(row)
 
-    # Invalida cache em memória
     from app.api.deps import invalidate_tier_limits_cache
+
     invalidate_tier_limits_cache()
 
     return row
@@ -124,21 +117,18 @@ async def update_tier_limits(
 
 @router.get("/metrics", response_model=AdminMetricsResponse, dependencies=[Depends(require_admin)])
 async def get_metrics(
-    days: int = Query(default=30, ge=1, le=90, description="Período em dias (1–90)"),
+    days: int = Query(default=30, ge=1, le=90, description="Periodo em dias (1-90)"),
     db: AsyncSession = Depends(get_db),
 ) -> AdminMetricsResponse:
-    """Retorna métricas de uso agregadas por período (somente admin)."""
     now = datetime.now(UTC)
     cutoff = now - timedelta(days=days)
 
-    # ── KPIs gerais ────────────────────────────────────────────────────────────
     all_users = (await db.execute(select(User))).scalars().all()
     total_users = len(all_users)
     active_users = sum(1 for u in all_users if u.is_active)
     inactive_users = total_users - active_users
     new_users_period = sum(1 for u in all_users if u.created_at >= cutoff)
 
-    # Mensagens do usuário enviadas no período (exclui respostas do assistant)
     messages_period = (
         await db.execute(
             select(func.count(Message.id))
@@ -147,21 +137,29 @@ async def get_metrics(
         )
     ).scalar_one()
 
-    # Sessões criadas no período
     sessions_period = (
-        await db.execute(
-            select(func.count(Session.id)).where(Session.created_at >= cutoff)
-        )
+        await db.execute(select(func.count(Session.id)).where(Session.created_at >= cutoff))
     ).scalar_one()
 
-    # Reviews feitas no período
     reviews_period = (
-        await db.execute(
-            select(func.count(ReviewLog.id)).where(ReviewLog.reviewed_at >= cutoff)
-        )
+        await db.execute(select(func.count(ReviewLog.id)).where(ReviewLog.reviewed_at >= cutoff))
     ).scalar_one()
 
-    # ── Atividade diária (série temporal para gráfico) ──────────────────────────────
+    reading_rows = (
+        await db.execute(
+            select(
+                ReadingAttempt.completed_at,
+                ReadingAttempt.user_id,
+                ReadingAttempt.total_questions,
+                ReadingAttempt.correct_answers,
+            ).where(ReadingAttempt.completed_at >= cutoff)
+        )
+    ).all()
+
+    reading_activities_period = len(reading_rows)
+    reading_questions_answered_period = sum(total for _, _, total, _ in reading_rows)
+    reading_correct_answers_period = sum(correct for _, _, _, correct in reading_rows)
+
     msg_rows = (
         await db.execute(
             select(Message.created_at)
@@ -171,45 +169,35 @@ async def get_metrics(
     ).scalars().all()
 
     sess_rows = (
-        await db.execute(
-            select(Session.created_at).where(Session.created_at >= cutoff)
-        )
+        await db.execute(select(Session.created_at).where(Session.created_at >= cutoff))
     ).scalars().all()
 
     rev_rows = (
-        await db.execute(
-            select(ReviewLog.reviewed_at).where(ReviewLog.reviewed_at >= cutoff)
-        )
+        await db.execute(select(ReviewLog.reviewed_at).where(ReviewLog.reviewed_at >= cutoff))
     ).scalars().all()
 
-    # Agrega por data
-    daily: dict[str, dict] = {}
+    daily: dict[str, dict[str, int]] = {}
     for dt in msg_rows:
         k = dt.date().isoformat()
-        daily.setdefault(k, {"messages": 0, "sessions": 0, "reviews": 0})["messages"] += 1
+        daily.setdefault(k, {"messages": 0, "sessions": 0, "reviews": 0, "reading_activities": 0})["messages"] += 1
     for dt in sess_rows:
         k = dt.date().isoformat()
-        daily.setdefault(k, {"messages": 0, "sessions": 0, "reviews": 0})["sessions"] += 1
+        daily.setdefault(k, {"messages": 0, "sessions": 0, "reviews": 0, "reading_activities": 0})["sessions"] += 1
     for dt in rev_rows:
         k = dt.date().isoformat()
-        daily.setdefault(k, {"messages": 0, "sessions": 0, "reviews": 0})["reviews"] += 1
+        daily.setdefault(k, {"messages": 0, "sessions": 0, "reviews": 0, "reading_activities": 0})["reviews"] += 1
+    for completed_at, _, _, _ in reading_rows:
+        k = completed_at.date().isoformat()
+        daily.setdefault(k, {"messages": 0, "sessions": 0, "reviews": 0, "reading_activities": 0})["reading_activities"] += 1
 
-    daily_activity = [
-        DailyActivity(date=k, **daily[k])
-        for k in sorted(daily.keys())
-    ]
+    daily_activity = [DailyActivity(date=k, **daily[k]) for k in sorted(daily.keys())]
 
-    # ── Breakdown por usuário ────────────────────────────────────────────────────────
     user_metrics: list[UserMetric] = []
     for user in all_users:
-        # Conta sessões deste usuário
         u_sessions = (
-            await db.execute(
-                select(func.count(Session.id)).where(Session.user_id == user.id)
-            )
+            await db.execute(select(func.count(Session.id)).where(Session.user_id == user.id))
         ).scalar_one()
 
-        # Conta mensagens (role=user) deste usuário
         u_messages = (
             await db.execute(
                 select(func.count(Message.id))
@@ -218,7 +206,6 @@ async def get_metrics(
             )
         ).scalar_one()
 
-        # Conta reviews deste usuário
         u_reviews = (
             await db.execute(
                 select(func.count(ReviewLog.id))
@@ -227,7 +214,17 @@ async def get_metrics(
             )
         ).scalar_one()
 
-        # Última atividade: a data mais recente entre última mensagem e último review
+        reading_totals = (
+            await db.execute(
+                select(
+                    func.count(ReadingAttempt.id),
+                    func.coalesce(func.sum(ReadingAttempt.total_questions), 0),
+                    func.max(ReadingAttempt.completed_at),
+                ).where(ReadingAttempt.user_id == user.id)
+            )
+        ).one()
+        u_reading_activities, u_reading_questions, last_reading_dt = reading_totals
+
         last_msg_dt = (
             await db.execute(
                 select(func.max(Message.created_at))
@@ -244,24 +241,26 @@ async def get_metrics(
             )
         ).scalar_one()
 
-        # Determina o último acesso (max das duas datas, tratando None)
-        candidates = [d for d in [last_msg_dt, last_rev_dt] if d is not None]
+        candidates = [d for d in [last_msg_dt, last_rev_dt, last_reading_dt] if d is not None]
         last_active = max(candidates) if candidates else None
 
-        user_metrics.append(UserMetric(
-            id=user.id,
-            full_name=user.full_name,
-            email=user.email,
-            tier=user.tier,
-            is_active=user.is_active,
-            created_at=user.created_at,
-            total_sessions=int(u_sessions),
-            total_messages=int(u_messages),
-            total_reviews=int(u_reviews),
-            last_active=last_active,
-        ))
+        user_metrics.append(
+            UserMetric(
+                id=user.id,
+                full_name=user.full_name,
+                email=user.email,
+                tier=user.tier,
+                is_active=user.is_active,
+                created_at=user.created_at,
+                total_sessions=int(u_sessions),
+                total_messages=int(u_messages),
+                total_reviews=int(u_reviews),
+                total_reading_activities=int(u_reading_activities or 0),
+                total_reading_questions=int(u_reading_questions or 0),
+                last_active=last_active,
+            )
+        )
 
-    # Ordena por última atividade: usuários com acesso mais recente primeiro
     user_metrics.sort(
         key=lambda x: x.last_active or datetime.min.replace(tzinfo=UTC),
         reverse=True,
@@ -276,6 +275,9 @@ async def get_metrics(
         messages_period=int(messages_period),
         sessions_period=int(sessions_period),
         reviews_period=int(reviews_period),
+        reading_activities_period=int(reading_activities_period),
+        reading_questions_answered_period=int(reading_questions_answered_period),
+        reading_correct_answers_period=int(reading_correct_answers_period),
         daily_activity=daily_activity,
         user_metrics=user_metrics,
     )

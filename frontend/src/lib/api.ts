@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   AdminMetrics,
   AdminUser,
   AnalysisResponse,
@@ -7,6 +7,8 @@ import type {
   Flashcard,
   Message,
   ProgressOverview,
+  ReadingActivity,
+  ReadingProgressOverview,
   ReviewStats,
   Session,
   TierLimits,
@@ -163,13 +165,10 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     throw new Error(text || `Request failed: ${response.status}`);
   }
 
-  // 204 No Content — nenhum body para parsear
   if (response.status === 204) return undefined as unknown as T;
 
   return response.json() as Promise<T>;
 }
-
-// ─── Autenticação ─────────────────────────────────────────────────────────────
 
 export async function register(full_name: string, email: string, password: string): Promise<User> {
   return request<User>("/auth/register", {
@@ -188,8 +187,6 @@ export async function login(email: string, password: string): Promise<{ access_t
 export async function me(token: string): Promise<User> {
   return request<User>("/auth/me", {}, token);
 }
-
-// ─── Sessões ──────────────────────────────────────────────────────────────────
 
 export async function listSessions(token: string): Promise<Session[]> {
   return request<Session[]>("/sessions", {}, token);
@@ -210,7 +207,6 @@ export async function createSession(
 export async function deleteSession(token: string, sessionId: string): Promise<void> {
   const apiBases = buildApiBaseCandidates();
   let response: Response | null = null;
-  let lastError: unknown = null;
 
   for (const apiBase of apiBases) {
     try {
@@ -220,8 +216,8 @@ export async function deleteSession(token: string, sessionId: string): Promise<v
         cache: "no-store",
       });
       break;
-    } catch (err) {
-      lastError = err;
+    } catch {
+      // tenta próxima base
     }
   }
 
@@ -232,8 +228,6 @@ export async function deleteSession(token: string, sessionId: string): Promise<v
     throw new Error(`Falha ao excluir sessão: ${response.status}`);
   }
 }
-
-// ─── Mensagens ────────────────────────────────────────────────────────────────
 
 export async function listMessages(token: string, sessionId: string): Promise<Message[]> {
   return request<Message[]>(`/sessions/${sessionId}/messages`, {}, token);
@@ -246,10 +240,6 @@ export async function sendChat(token: string, session_id: string, text_raw: stri
   }, token);
 }
 
-/**
- * Versão SSE do sendChat — chama onChunk por cada pedaço do reply do assistente.
- * Retorna o `ChatResponse` reconstruído quando o stream terminar.
- */
 export async function sendChatStream(
   token: string,
   session_id: string,
@@ -334,12 +324,41 @@ export async function sendChatStream(
   return result;
 }
 
-// ─── Análise ──────────────────────────────────────────────────────────────────
+export async function generateReadingActivity(
+  token: string,
+  payload: { theme: string; cefr_level?: string | null; question_language?: "en" | "pt" },
+): Promise<ReadingActivity> {
+  return request<ReadingActivity>("/reading/generate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, token);
+}
 
 export async function analyzeMessage(token: string, messageId: string): Promise<AnalysisResponse> {
   return request<AnalysisResponse>(`/messages/${messageId}/analysis`, {
     method: "POST",
   }, token);
+}
+
+export async function analyzeText(token: string, text: string): Promise<AnalysisResponse> {
+  return request<AnalysisResponse>("/analysis/text", {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  }, token);
+}
+
+export async function saveReadingAttempt(
+  token: string,
+  payload: { title: string; theme: string; question_language: "en" | "pt"; total_questions: number; correct_answers: number },
+): Promise<{ id: string }> {
+  return request<{ id: string }>("/reading/attempts", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, token);
+}
+
+export async function readingProgressOverview(token: string, days = 14): Promise<ReadingProgressOverview> {
+  return request<ReadingProgressOverview>(`/reading/progress?days=${days}`, {}, token);
 }
 
 export async function lookupDictionaryWord(token: string, word: string): Promise<{
@@ -351,8 +370,6 @@ export async function lookupDictionaryWord(token: string, word: string): Promise
 }> {
   return request(`/dictionary/lookup?word=${encodeURIComponent(word)}`, {}, token);
 }
-
-// ─── SRS / Flashcards ─────────────────────────────────────────────────────────
 
 export async function addFlashcard(token: string, payload: {
   word: string;
@@ -387,8 +404,6 @@ export async function reviewStats(token: string): Promise<ReviewStats> {
   return request<ReviewStats>("/reviews/stats", {}, token);
 }
 
-// ─── Progresso / Dashboard ────────────────────────────────────────────────────
-
 export async function progressOverview(token: string): Promise<ProgressOverview> {
   return request<ProgressOverview>("/stats/overview", {}, token);
 }
@@ -397,16 +412,12 @@ export async function reviewHistory(token: string, days = 14): Promise<DailyRevi
   return request<DailyReviewStat[]>(`/reviews/history?days=${days}`, {}, token);
 }
 
-// ─── Perfil do usuário ────────────────────────────────────────────────────────
-
 export async function updateProfile(
   token: string,
   payload: { full_name?: string; current_password?: string; new_password?: string },
 ): Promise<User> {
   return request<User>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }, token);
 }
-
-// ─── Administração ────────────────────────────────────────────────────────────
 
 export async function adminListUsers(token: string): Promise<AdminUser[]> {
   return request<AdminUser[]>("/admin/users", {}, token);
@@ -445,3 +456,9 @@ export async function adminUpdateTierLimits(
 export async function adminGetMetrics(token: string, days = 30): Promise<AdminMetrics> {
   return request<AdminMetrics>(`/admin/metrics?days=${days}`, {}, token);
 }
+
+
+
+
+
+

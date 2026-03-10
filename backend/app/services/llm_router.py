@@ -1,12 +1,12 @@
-from collections.abc import AsyncGenerator
+﻿from collections.abc import AsyncGenerator
 
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.providers.base import BaseLLMProvider
 from app.providers.gemini_provider import GeminiProvider
 from app.providers.ollama_provider import OllamaProvider
-from app.services.errors import ProviderError, ProviderUnavailableError
-from app.services.llm_types import ChatResult, CorrectionResult, SentenceAnalysis
+from app.services.errors import ProviderError
+from app.services.llm_types import ChatResult, CorrectionResult, ReadingActivity, SentenceAnalysis
 
 logger = get_logger(__name__)
 
@@ -28,8 +28,6 @@ class LLMRouter:
             if provider.is_available() or name == "gemini":
                 names.append(name)
         return names
-
-
 
     def _provider_order(self, provider_override: str | None, user_preference: str | None) -> list[str]:
         candidates: list[str] = []
@@ -136,6 +134,19 @@ class LLMRouter:
         )
         return result, provider_name, model
 
+    async def generate_reading_activity(
+        self,
+        theme: str,
+        context: dict,
+        provider_override: str | None,
+        user_preference: str | None,
+    ) -> tuple[ReadingActivity, str, str]:
+        order = self._provider_order(provider_override, user_preference)
+        result, provider_name, model = await self._execute_with_fallback(
+            "generate_reading_activity", order, theme, context
+        )
+        return result, provider_name, model
+
     async def stream_reply(
         self,
         corrected_text: str,
@@ -152,7 +163,6 @@ class LLMRouter:
                 continue
             stream_method = getattr(provider, "stream_reply", None)
             if stream_method is None:
-                # fallback: gera resposta completa e envia em um único chunk
                 try:
                     result, _, _ = await self._execute_with_fallback(
                         "generate_reply", [provider_name], corrected_text, history, context
