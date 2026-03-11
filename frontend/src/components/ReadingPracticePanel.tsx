@@ -38,6 +38,7 @@ export function ReadingPracticePanel({ token }: Props) {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisResponse | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [speechRate, setSpeechRate] = useState(0.8);
 
   const selectedTheme = readingPractice.selectedTheme;
   const customTheme = readingPractice.customTheme;
@@ -143,6 +144,15 @@ export function ReadingPracticePanel({ token }: Props) {
 
   async function handleLookup(word: string): Promise<TokenInfo> {
     return lookupDictionaryWord(token, word);
+  }
+
+  function speak(text: string) {
+    if (typeof window === "undefined" || !("speechSynthesis" in window) || !text.trim()) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = speechRate;
+    window.speechSynthesis.speak(utterance);
   }
 
   return (
@@ -258,13 +268,37 @@ export function ReadingPracticePanel({ token }: Props) {
                     <p className="mt-1 text-sm text-ink/55">Tema: {activity.theme}</p>
                     <p className="mt-1 text-sm text-ink/55">Questões em: {activityQuestionLanguageLabel}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleAnalyzeText}
-                    className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 transition hover:border-sky-400 hover:bg-sky-100"
-                  >
-                    Analisar texto
-                  </button>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => speak(activity.passage)}
+                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100"
+                      title="Ouvir texto em ingles"
+                    >
+                      Ouvir texto
+                    </button>
+                    <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-2 py-2" title="Velocidade da fala">
+                      <span className="text-xs text-ink/50">🔊</span>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="1.5"
+                        step="0.1"
+                        value={speechRate}
+                        onChange={(event) => setSpeechRate(Number(event.target.value))}
+                        className="h-1 w-20 accent-sky-700"
+                        title={`Velocidade: ${speechRate.toFixed(1)}x`}
+                      />
+                      <span className="w-7 text-[10px] text-ink/50">{speechRate.toFixed(1)}x</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeText}
+                      className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 transition hover:border-sky-400 hover:bg-sky-100"
+                    >
+                      Analisar texto
+                    </button>
+                  </div>
                 </div>
 
                 <article className="max-h-[320px] overflow-y-auto rounded-2xl bg-stone-50 p-4 text-sm leading-7 text-ink whitespace-pre-line">

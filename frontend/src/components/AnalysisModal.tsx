@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -233,7 +233,9 @@ export function AnalysisModal({
 
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
               <p className="text-xs uppercase tracking-wide text-ink/50">Translation (PT)</p>
-              <p className="mt-1 whitespace-pre-line">{analysis.translation_pt || "-"}</p>
+              <p className="mt-1 max-h-[260px] overflow-y-auto whitespace-pre-line leading-relaxed">
+                {analysis.translation_pt || "-"}
+              </p>
             </div>
 
             {deckFeedback ? (
@@ -297,3 +299,4 @@ export function AnalysisModal({
     </div>
   );
 }
+
