@@ -105,3 +105,48 @@ def test_end_to_end_chat_analysis_and_srs(client) -> None:
     stats = stats_response.json()
     assert stats["total_cards"] == 1
     assert stats["reviews_today"] == 1
+
+
+def test_reading_text_analysis_returns_full_text(client) -> None:
+    headers = _auth_headers(client, email="reading@example.com")
+    full_text = "First sentence here.\nSecond sentence appears here too."
+
+    response = client.post(
+        "/api/v1/analysis/text",
+        headers=headers,
+        json={"text": full_text},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["original_en"] == full_text
+    assert payload["tokens"]
+
+
+def test_message_analysis_returns_full_text(client) -> None:
+    headers = _auth_headers(client, email="multi-message@example.com")
+
+    session_response = client.post(
+        "/api/v1/sessions",
+        headers=headers,
+        json={"topic": "General", "persona_prompt": "You are helpful."},
+    )
+    assert session_response.status_code == 200
+    session_id = session_response.json()["id"]
+
+    multi_sentence = "First sentence here. Second sentence stays visible too."
+    chat_response = client.post(
+        "/api/v1/chat/send",
+        headers=headers,
+        json={"session_id": session_id, "text_raw": multi_sentence},
+    )
+    assert chat_response.status_code == 200
+
+    analysis_response = client.post(
+        f"/api/v1/messages/{chat_response.json()['user_message_id']}/analysis",
+        headers=headers,
+    )
+    assert analysis_response.status_code == 200
+    payload = analysis_response.json()
+    assert payload["original_en"] == multi_sentence
+    assert payload["tokens"]

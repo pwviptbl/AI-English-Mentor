@@ -1,4 +1,4 @@
-﻿"""Analysis for messages and reading texts with caching to reduce repeated LLM calls."""
+"""Analysis for messages and reading texts with caching to reduce repeated LLM calls."""
 
 import hashlib
 
@@ -47,6 +47,15 @@ def _cache_to_analysis(data: dict) -> SentenceAnalysis:
         original_en=data.get("original_en", ""),
         translation_pt=data.get("translation_pt", ""),
         tokens=tokens,
+    )
+
+
+def _normalize_analysis_result(source_text: str, result: SentenceAnalysis) -> SentenceAnalysis:
+    """Guarantee the frontend always receives the full source text it asked to analyze."""
+    return SentenceAnalysis(
+        original_en=source_text,
+        translation_pt=result.translation_pt,
+        tokens=result.tokens,
     )
 
 
@@ -112,6 +121,7 @@ async def _analyze_text_with_cache(
         provider_override=provider_override,
         user_preference=current_user.preferred_ai_provider,
     )
+    result = _normalize_analysis_result(candidate, result)
 
     cache_entry = AnalysisCache(
         sentence_hash=h,

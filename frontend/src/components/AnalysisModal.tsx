@@ -14,7 +14,7 @@ type Props = {
   sourceLabel?: string;
   sourceTextEmptyHint?: string;
   onClose: () => void;
-  onAddToken: (token: TokenInfo, sentence: string) => Promise<void>;
+  onAddToken: (token: TokenInfo, sourceText: string) => Promise<void>;
   onLookupToken?: (word: string) => Promise<TokenInfo>;
 };
 
@@ -68,7 +68,7 @@ export function AnalysisModal({
     setWordInDeck(false);
   }, [analysis?.original_en, open]);
 
-  const sentenceParts = useMemo(() => {
+  const textParts = useMemo(() => {
     if (!analysis?.original_en) return [];
     return analysis.original_en.match(/([A-Za-z][A-Za-z'-]*|[^A-Za-z]+)/g) || [analysis.original_en];
   }, [analysis?.original_en]);
@@ -208,7 +208,7 @@ export function AnalysisModal({
             <div className="rounded-xl border border-emerald-900/15 bg-white p-3">
               <p className="text-xs uppercase tracking-wide text-ink/50">{sourceLabel}</p>
               <p className="mt-2 max-h-[260px] overflow-y-auto leading-relaxed whitespace-pre-line">
-                {sentenceParts.map((part, index) => {
+                {textParts.map((part, index) => {
                   if (!isWord(part)) {
                     return <span key={`sep-${index}`}>{part}</span>;
                   }
@@ -233,7 +233,9 @@ export function AnalysisModal({
 
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
               <p className="text-xs uppercase tracking-wide text-ink/50">Translation (PT)</p>
-              <p className="mt-1 whitespace-pre-line">{analysis.translation_pt || "-"}</p>
+              <p className="mt-1 max-h-[260px] overflow-y-auto whitespace-pre-line leading-relaxed">
+                {analysis.translation_pt || "-"}
+              </p>
             </div>
 
             {deckFeedback ? (
