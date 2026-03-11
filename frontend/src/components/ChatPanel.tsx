@@ -103,6 +103,11 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
     window.speechSynthesis.speak(utterance);
   }
 
+  function stopSpeaking() {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+  }
+
   async function handleSend(event: FormEvent) {
     event.preventDefault();
     const text = input.trim();
@@ -353,6 +358,15 @@ export function ChatPanel({ token, sessionId, messages, reloadMessages }: Props)
             />
             <span className="text-[10px] text-ink/50 w-7">{speechRate.toFixed(1)}x</span>
           </div>
+
+          <button
+            type="button"
+            title="Parar audio"
+            className="text-xs rounded px-2 py-1 border border-gray-200 text-ink/60 hover:border-red-300 hover:text-red-600 transition"
+            onClick={stopSpeaking}
+          >
+            ⏹
+          </button>
         </div>
 
         {/* Linha 2 — ferramentas de entrada (voz + texto + enviar) */}

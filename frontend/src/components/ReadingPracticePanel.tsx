@@ -155,6 +155,11 @@ export function ReadingPracticePanel({ token }: Props) {
     window.speechSynthesis.speak(utterance);
   }
 
+  function stopSpeaking() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+  }
+
   return (
     <>
       <section className="rounded-3xl border border-sky-900/20 bg-panel p-5 shadow-[0_20px_45px_rgba(0,0,0,0.08)]">
@@ -291,6 +296,15 @@ export function ReadingPracticePanel({ token }: Props) {
                       />
                       <span className="w-7 text-[10px] text-ink/50">{speechRate.toFixed(1)}x</span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={stopSpeaking}
+                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:border-red-400 hover:bg-red-100"
+                      title="Parar audio"
+                    >
+                      Parar audio
+                    </button>
+
                     <button
                       type="button"
                       onClick={handleAnalyzeText}
@@ -431,4 +445,3 @@ export function ReadingPracticePanel({ token }: Props) {
     </>
   );
 }
-
