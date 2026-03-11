@@ -13,13 +13,11 @@ logger = get_logger(__name__)
 
 async def _ensure_admin_user() -> None:
     """Cria a conta admin padrão se ainda não existir."""
-    from app.db.session import AsyncSessionLocal  # local import para evitar ciclo
+    from app.db.session import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
-        existing = (
-            await db.execute(select(User).where(User.email == settings.admin_email))
-        ).scalar_one_or_none()
+        existing = (await db.execute(select(User).where(User.email == settings.admin_email))).scalar_one_or_none()
         if existing:
-            # garante que o admin padrão seja sempre admin e ativo mesmo após reset
             changed = False
             if not existing.is_admin:
                 existing.is_admin = True
@@ -34,6 +32,7 @@ async def _ensure_admin_user() -> None:
             full_name="Admin",
             email=settings.admin_email,
             password_hash=hash_password(settings.admin_password),
+            edge_tts_voice=settings.edge_tts_default_voice,
             tier="pro",
             is_admin=True,
             is_active=True,
@@ -46,11 +45,10 @@ async def _ensure_admin_user() -> None:
 async def _ensure_tier_limits() -> None:
     """Garante que as linhas free e pro existam na tabela tier_limits."""
     from app.db.session import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
         for tier, chat, analysis in [("free", 20, 10), ("pro", 100, 50)]:
-            existing = (
-                await db.execute(select(TierLimits).where(TierLimits.tier == tier))
-            ).scalar_one_or_none()
+            existing = (await db.execute(select(TierLimits).where(TierLimits.tier == tier))).scalar_one_or_none()
             if not existing:
                 db.add(TierLimits(tier=tier, daily_chat_limit=chat, daily_analysis_limit=analysis))
         await db.commit()
@@ -58,8 +56,6 @@ async def _ensure_tier_limits() -> None:
 
 
 async def _run_init_db_once() -> None:
-    # O schema é gerenciado exclusivamente pelo Alembic (alembic upgrade head).
-    # Aqui apenas garantimos os dados iniciais obrigatórios.
     await _ensure_tier_limits()
     await _ensure_admin_user()
 

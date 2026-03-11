@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
-from app.core.config import settings
 from app.core.security import hash_password, verify_password
 from app.db.models import User
 from app.db.session import get_db
 from app.schemas.admin import ProfileUpdate
 from app.schemas.auth import UserResponse
 from app.schemas.providers import ProviderPreferenceUpdate
+from app.services.edge_tts import DEFAULT_EDGE_TTS_VOICE, is_supported_edge_tts_voice
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -37,7 +37,6 @@ async def update_profile(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> UserResponse:
-    """Atualiza nome e/ou senha do usuário logado."""
     if payload.full_name is not None:
         name = payload.full_name.strip()
         if len(name) < 2:
@@ -53,7 +52,12 @@ async def update_profile(
             raise HTTPException(status_code=400, detail="new_password must have at least 8 characters")
         current_user.password_hash = hash_password(payload.new_password)
 
+    if payload.edge_tts_voice is not None:
+        voice = payload.edge_tts_voice.strip() or DEFAULT_EDGE_TTS_VOICE
+        if not is_supported_edge_tts_voice(voice):
+            raise HTTPException(status_code=400, detail="unsupported edge tts voice")
+        current_user.edge_tts_voice = voice
+
     await db.commit()
     await db.refresh(current_user)
     return current_user
-

@@ -1,6 +1,6 @@
-﻿from fastapi import APIRouter
+from fastapi import APIRouter
 
-from app.api.v1 import admin, analysis, auth, chat, dictionary, providers, reading, sessions, srs, users
+from app.api.v1 import admin, analysis, auth, chat, dictionary, providers, reading, sessions, speech, srs, users
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
@@ -12,5 +12,6 @@ api_router.include_router(analysis.text_router)
 api_router.include_router(dictionary.router)
 api_router.include_router(srs.router)
 api_router.include_router(providers.router)
+api_router.include_router(speech.router)
 api_router.include_router(users.router)
 api_router.include_router(admin.router)

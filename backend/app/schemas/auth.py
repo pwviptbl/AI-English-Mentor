@@ -29,6 +29,7 @@ class UserResponse(BaseModel):
     full_name: str
     email: EmailStr
     preferred_ai_provider: str
+    edge_tts_voice: str
     tier: str
     is_admin: bool
     created_at: datetime

@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr
@@ -39,6 +39,7 @@ class ProfileUpdate(BaseModel):
     full_name: str | None = None
     current_password: str | None = None
     new_password: str | None = None
+    edge_tts_voice: str | None = None
 
 
 class UserMetric(BaseModel):

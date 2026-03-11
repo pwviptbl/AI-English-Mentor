@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_auth_rate_limit_dep, get_current_user
+from app.core.config import settings
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -27,7 +28,8 @@ async def register_user(payload: UserRegister, db: AsyncSession = Depends(get_db
         full_name=payload.full_name.strip(),
         email=payload.email,
         password_hash=hash_password(payload.password),
-        is_active=False,  # aguarda ativação pelo admin
+        edge_tts_voice=settings.edge_tts_default_voice,
+        is_active=False,
     )
     db.add(user)
     await db.commit()
@@ -44,7 +46,7 @@ async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)) -> Token
     if not user.is_active:
         raise HTTPException(
             status_code=403,
-            detail="account pending activation — contact the administrator",
+            detail="account pending activation - contact the administrator",
         )
 
     return TokenPair(
