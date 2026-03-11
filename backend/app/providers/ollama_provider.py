@@ -1,4 +1,4 @@
-﻿"""Provider Ollama - LLM local/gratuito via Ollama."""
+"""Provider Ollama - LLM local/gratuito via Ollama."""
 
 from __future__ import annotations
 
@@ -27,6 +27,30 @@ logger = get_logger(__name__)
 class OllamaProvider(BaseLLMProvider):
     name = "ollama"
 
+    @staticmethod
+    def _analysis_prompt(source_text: str, context: dict) -> str:
+        is_reading_text = str(context.get("topic") or "").strip().lower() == "reading_text"
+        text_label = "Text" if is_reading_text else "Sentence"
+        scope_instruction = (
+            "Analyze the full reading passage. Preserve line breaks in original_en, translate the full text to Portuguese, "
+            "and include tokens from the entire passage, not only the first sentence."
+            if is_reading_text
+            else "Analyze the full sentence."
+        )
+        return (
+            "You are an English tutor analyzer. Return ONLY JSON with keys: "
+            "original_en (string), translation_pt (string), tokens (array). "
+            "Each token object must include: token, lemma, pos, translation, definition. "
+            "Use Portuguese in translation and definition. "
+            "Keep original_en exactly equal to the input text.\n"
+            f"{scope_instruction}\n"
+            "Example output:\n"
+            '{ "original_en": "Hello world", "translation_pt": "Olá mundo", "tokens": ['
+            '{ "token": "Hello", "lemma": "hello", "pos": "interjection", "translation": "olá", "definition": "saudação" },'
+            '{ "token": "world", "lemma": "world", "pos": "noun", "translation": "mundo", "definition": "planeta Terra" }'
+            '] }\n'
+            f"{text_label}: {source_text}"
+        )
     def is_available(self) -> bool:
         return settings.enable_ollama
 
@@ -171,18 +195,7 @@ class OllamaProvider(BaseLLMProvider):
 
     async def analyze_sentence(self, sentence_en: str, context: dict) -> tuple[SentenceAnalysis, str]:
         model = settings.ollama_model
-        prompt = (
-            "You are an English tutor analyzer. Given one English sentence, return ONLY JSON with keys: "
-            "original_en (string), translation_pt (string), tokens (array). "
-            "Each token object must include: token, lemma, pos, translation, definition. "
-            "Use Portuguese in translation and definition.\n"
-            "Example output:\n"
-            '{ "original_en": "Hello world", "translation_pt": "Olá mundo", "tokens": ['
-            '{ "token": "Hello", "lemma": "hello", "pos": "interjection", "translation": "olá", "definition": "saudação" },'
-            '{ "token": "world", "lemma": "world", "pos": "noun", "translation": "mundo", "definition": "planeta Terra" }'
-            '] }\n'
-            f"Sentence: {sentence_en}"
-        )
+        prompt = self._analysis_prompt(sentence_en, context)
         text = await self._generate(prompt, settings.analysis_timeout_seconds)
         try:
             parsed = await self._extract_json_with_repair(text)
@@ -260,5 +273,3 @@ class OllamaProvider(BaseLLMProvider):
             ),
             model,
         )
-
-
