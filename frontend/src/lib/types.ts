@@ -1,10 +1,11 @@
-﻿export type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark";
 
 export type User = {
   id: string;
   full_name: string;
   email: string;
   preferred_ai_provider: string;
+  edge_tts_voice: string;
   tier: string;
   is_admin: boolean;
   created_at: string;
@@ -203,6 +204,3 @@ export type AdminMetrics = {
   daily_activity: DailyActivity[];
   user_metrics: UserMetric[];
 };
-
-
-

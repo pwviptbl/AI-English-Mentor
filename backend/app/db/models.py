@@ -1,4 +1,4 @@
-﻿import hashlib
+import hashlib
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -24,6 +24,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(512))
     preferred_ai_provider: Mapped[str] = mapped_column(String(32), default="gemini")
+    edge_tts_voice: Mapped[str] = mapped_column(String(64), default="en-US-JennyNeural")
     tier: Mapped[str] = mapped_column(String(16), default="free", index=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, index=True)

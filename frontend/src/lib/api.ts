@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   AdminMetrics,
   AdminUser,
   AnalysisResponse,
@@ -414,9 +414,42 @@ export async function reviewHistory(token: string, days = 14): Promise<DailyRevi
 
 export async function updateProfile(
   token: string,
-  payload: { full_name?: string; current_password?: string; new_password?: string },
+  payload: { full_name?: string; current_password?: string; new_password?: string; edge_tts_voice?: string },
 ): Promise<User> {
   return request<User>("/users/me", { method: "PATCH", body: JSON.stringify(payload) }, token);
+}
+
+export async function synthesizeSpeech(token: string, text: string, rate = 1): Promise<Blob> {
+  const apiBases = buildApiBaseCandidates();
+  let response: Response | null = null;
+
+  for (const apiBase of apiBases) {
+    try {
+      response = await fetch(`${apiBase}/speech/tts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text, rate }),
+        cache: "no-store",
+      });
+      break;
+    } catch {
+      // tenta a próxima base
+    }
+  }
+
+  if (!response) {
+    throw new Error("Não foi possível conectar ao backend de voz.");
+  }
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(detail || `Speech request failed: ${response.status}`);
+  }
+
+  return response.blob();
 }
 
 export async function adminListUsers(token: string): Promise<AdminUser[]> {
