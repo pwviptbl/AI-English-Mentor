@@ -58,6 +58,7 @@ export function AnalysisModal({
     null,
   );
   const [wordInDeck, setWordInDeck] = useState(false);
+  const [isFullTranslationOpen, setIsFullTranslationOpen] = useState(false);
   const addInFlightRef = useRef(false);
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export function AnalysisModal({
     setLookupError(null);
     setDeckFeedback(null);
     setWordInDeck(false);
+    setIsFullTranslationOpen(false);
   }, [analysis?.original_en, open]);
 
   const textParts = useMemo(() => {
@@ -231,13 +233,6 @@ export function AnalysisModal({
               </p>
             </div>
 
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <p className="text-xs uppercase tracking-wide text-ink/50">Translation (PT)</p>
-              <p className="mt-1 max-h-[260px] overflow-y-auto whitespace-pre-line leading-relaxed">
-                {analysis.translation_pt || "-"}
-              </p>
-            </div>
-
             {deckFeedback ? (
               <div
                 role="status"
@@ -293,6 +288,33 @@ export function AnalysisModal({
                 <p className="mt-2 text-sm text-ink/65">{sourceTextEmptyHint}</p>
               )}
             </div>
+
+            <fieldset className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <legend className="w-full">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-3 text-left"
+                  onClick={() => setIsFullTranslationOpen((prev) => !prev)}
+                  aria-expanded={isFullTranslationOpen}
+                >
+                  <span>
+                    <span className="block text-xs uppercase tracking-wide text-ink/50">Full Translation (PT)</span>
+                    <span className="mt-1 block text-xs text-ink/60">
+                      {isFullTranslationOpen ? "Hide full text translation" : "Show full text translation"}
+                    </span>
+                  </span>
+                  <span className="text-sm font-semibold text-amber-700">
+                    {isFullTranslationOpen ? "−" : "+"}
+                  </span>
+                </button>
+              </legend>
+
+              {isFullTranslationOpen ? (
+                <p className="mt-3 max-h-[260px] overflow-y-auto whitespace-pre-line leading-relaxed">
+                  {analysis.translation_pt || "-"}
+                </p>
+              ) : null}
+            </fieldset>
           </div>
         ) : null}
       </div>
